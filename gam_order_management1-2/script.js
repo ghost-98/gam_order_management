@@ -1,0 +1,1152 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM 요소 가져오기
+    const orderTableBody = document.getElementById('order-table-body');
+    const newOrderBtn = document.getElementById('new-order-btn');
+    const orderModal = document.getElementById('order-form-modal');
+    const closeOrderModalBtn = orderModal.querySelector('.close-btn');
+    const orderForm = document.getElementById('order-form');
+    const formTitle = document.getElementById('form-title');
+    const searchInput = document.getElementById('search-input');
+    const dashboard = document.getElementById('dashboard');
+    const resetViewBtn = document.getElementById('reset-view-btn');
+    const toggleViewBtn = document.getElementById('toggle-view-btn');
+    const orderTable = document.querySelector('.order-list table');
+
+    // 가격 설정 관련 DOM 요소
+    const priceSettingsBtn = document.getElementById('price-settings-btn');
+    const priceModal = document.getElementById('price-settings-modal');
+    const closePriceModalBtn = priceModal.querySelector('.close-btn');
+    const priceSettingsForm = document.getElementById('price-settings-form');
+    const sweetPriceInput = document.getElementById('sweet-price');
+    const daebongPriceInput = document.getElementById('daebong-price');
+
+    // 데이터 집계 관련 DOM 요소
+    const aggregationBtn = document.getElementById('aggregation-btn');
+    const aggregationModal = document.getElementById('aggregation-modal');
+    const closeAggregationModalBtn = aggregationModal.querySelector('.close-btn');
+    const aggregationControls = document.querySelector('.aggregation-controls');
+    const aggregationResults = document.getElementById('aggregation-results');
+
+    // 파일 입출력 관련 DOM 요소
+    const saveDataBtn = document.getElementById('save-data-btn');
+    const loadDataInput = document.getElementById('load-data-input');
+    const exportScheduledBtn = document.getElementById('export-scheduled-btn');
+
+    // 배송 관리 모달 관련 DOM 요소
+    const shippingModal = document.getElementById('shipping-management-modal');
+    const closeShippingModalBtn = shippingModal.querySelector('.close-btn');
+    const shippingModalSaveBtn = document.getElementById('shipping-modal-save-btn');
+    const shippingOrderIdInput = document.getElementById('shipping-order-id');
+    const shippingSweetTotal = document.getElementById('shipping-sweet-total');
+    const shippingDaebongTotal = document.getElementById('shipping-daebong-total');
+    const shippingSweetUnsent = document.getElementById('shipping-sweet-unsent');
+    const shippingDaebongUnsent = document.getElementById('shipping-daebong-unsent');
+    const shippingSweetScheduledList = document.getElementById('shipping-sweet-scheduled-list');
+    const shippingDaebongScheduledList = document.getElementById('shipping-daebong-scheduled-list');
+    const shippingSweetSentList = document.getElementById('shipping-sweet-sent-list');
+    const shippingDaebongSentList = document.getElementById('shipping-daebong-sent-list');
+    const shippingAddForms = document.querySelectorAll('.shipping-add-form');
+
+
+    // 대시보드 요소
+    const redThresholdInput = document.getElementById('red-threshold');
+    const redThresholdLabel = document.getElementById('red-threshold-label-db');
+
+    // 상태 관리 (기본값으로 초기화)
+    let orders = [];
+    let redThreshold = 7;
+    let viewMode = 'compact';
+    let prices = { sweet: 25000, daebong: 20000 };
+    let currentSort = { column: 'orderDate', direction: 'desc' };
+    let tempShippingDetails = {}; // 배송관리 모달용 임시 데이터
+    let editingShippingItem = null; // 배송관리 모달에서 수정중인 아이템 정보
+
+    // UI 새로고침
+    const refreshUI = () => {
+        renderTable(getFilteredAndSortedOrders());
+        updateDashboard();
+        updateViewModeUI();
+        redThresholdInput.value = redThreshold;
+        if(redThresholdLabel) redThresholdLabel.textContent = redThreshold;
+    };
+
+    const updateViewModeUI = () => {
+        orderTable.className = 'view-' + viewMode;
+        toggleViewBtn.textContent = viewMode === 'compact' ? '상세 보기' : '간단히 보기';
+    };
+
+    // 대시보드 업데이트
+    const updateDashboard = () => {
+        let totalOrders = 0;
+        let totalSweetPersimmons = 0;
+        let totalDaebongPersimmons = 0;
+        let sentOrders = 0, totalSentSweet = 0, totalSentDaebong = 0;
+        let unsentOrders = 0, totalUnsentSweet = 0, totalUnsentDaebong = 0;
+        let scheduledOrders = 0, totalScheduledSweet = 0, totalScheduledDaebong = 0;
+        let delayedOrders = 0, delayedUnsentSweet = 0, delayedUnsentDaebong = 0;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        orders.forEach(order => {
+            totalOrders++;
+
+            const sweetTotal = parseInt(order.sweetPersimmon) || 0;
+            const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+            const totalBoxes = sweetTotal + daebongTotal;
+
+            totalSweetPersimmons += sweetTotal;
+            totalDaebongPersimmons += daebongTotal;
+
+            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+            let orderSentSweet = 0, orderSentDaebong = 0;
+            let orderScheduledSweet = 0, orderScheduledDaebong = 0;
+
+            (details.sweetPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') orderSentSweet += item.count;
+                else if (item.status === '발송예정') orderScheduledSweet += item.count;
+            });
+            (details.daebongPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') orderSentDaebong += item.count;
+                else if (item.status === '발송예정') orderScheduledDaebong += item.count;
+            });
+            
+            const orderUnsentSweet = sweetTotal - orderSentSweet - orderScheduledSweet;
+            const orderUnsentDaebong = daebongTotal - orderSentDaebong - orderScheduledDaebong;
+
+            totalSentSweet += orderSentSweet;
+            totalSentDaebong += orderSentDaebong;
+            totalScheduledSweet += orderScheduledSweet;
+            totalScheduledDaebong += orderScheduledDaebong;
+            totalUnsentSweet += orderUnsentSweet;
+            totalUnsentDaebong += orderUnsentDaebong;
+
+            const totalSentInOrder = orderSentSweet + orderSentDaebong;
+            if (totalBoxes > 0 && totalBoxes === totalSentInOrder) {
+                sentOrders++;
+            }
+
+            if (orderUnsentSweet > 0 || orderUnsentDaebong > 0) {
+                unsentOrders++;
+            }
+
+            if (orderScheduledSweet > 0 || orderScheduledDaebong > 0) {
+                scheduledOrders++;
+            }
+            
+            const orderDate = new Date(order.orderDate);
+            const diffTime = today.getTime() - orderDate.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > redThreshold && (orderUnsentSweet > 0 || orderUnsentDaebong > 0)) {
+                delayedOrders++;
+                delayedUnsentSweet += orderUnsentSweet;
+                delayedUnsentDaebong += orderUnsentDaebong;
+            }
+        });
+
+        document.getElementById('db-total-orders').textContent = totalOrders;
+        document.getElementById('db-total-sweet').textContent = totalSweetPersimmons;
+        document.getElementById('db-total-daebong').textContent = totalDaebongPersimmons;
+        document.getElementById('db-sent-orders').textContent = sentOrders;
+        document.getElementById('db-sent-sweet').textContent = totalSentSweet;
+        document.getElementById('db-sent-daebong').textContent = totalSentDaebong;
+        document.getElementById('db-unsent-orders').textContent = unsentOrders;
+        document.getElementById('db-unsent-sweet').textContent = totalUnsentSweet;
+        document.getElementById('db-unsent-daebong').textContent = totalUnsentDaebong;
+        document.getElementById('db-scheduled-orders').textContent = scheduledOrders;
+        document.getElementById('db-scheduled-sweet').textContent = totalScheduledSweet;
+        document.getElementById('db-scheduled-daebong').textContent = totalScheduledDaebong;
+        document.getElementById('db-delayed-orders').textContent = delayedOrders;
+        document.getElementById('db-delayed-sweet').textContent = delayedUnsentSweet;
+        document.getElementById('db-delayed-daebong').textContent = delayedUnsentDaebong;
+        
+        if (redThresholdLabel) redThresholdLabel.textContent = redThreshold;
+    };
+
+    // 날짜 및 숫자 형식 변환
+    const formatDateWithDay = (dateString) => {
+        if (!dateString) return '';
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const date = new Date(dateString + 'T00:00:00');
+        const dayName = days[date.getDay()];
+        return `${dateString} (${dayName})`;
+    };
+
+    const formatCurrency = (number) => {
+        return number.toLocaleString('ko-KR') + '원';
+    };
+
+    const createShippingStatusVisual = (order) => {
+        const sweetTotal = parseInt(order.sweetPersimmon) || 0;
+        const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+        const totalBoxes = sweetTotal + daebongTotal;
+
+        if (totalBoxes === 0) {
+            return '<span>-</span>';
+        }
+
+        const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+        let scheduledCount = 0;
+        let sentCount = 0;
+
+        (details.sweetPersimmon || []).forEach(item => {
+            if (item.status === '발송예정') scheduledCount += item.count;
+            else if (item.status === '발송완료') sentCount += item.count;
+        });
+        (details.daebongPersimmon || []).forEach(item => {
+            if (item.status === '발송예정') scheduledCount += item.count;
+            else if (item.status === '발송완료') sentCount += item.count;
+        });
+
+        const unsentCount = totalBoxes - scheduledCount - sentCount;
+
+        const unsentPercent = totalBoxes > 0 ? (unsentCount / totalBoxes) * 100 : 0;
+        const scheduledPercent = totalBoxes > 0 ? (scheduledCount / totalBoxes) * 100 : 0;
+        const sentPercent = totalBoxes > 0 ? (sentCount / totalBoxes) * 100 : 0;
+
+        const barHtml = `
+            <div class="shipping-visual-bar" title="미발송: ${unsentCount}, 발송예정: ${scheduledCount}, 발송완료: ${sentCount}">
+                ${unsentPercent > 0 ? `<div class="svb-unsent" style="width: ${unsentPercent}%;"></div>` : ''}
+                ${scheduledPercent > 0 ? `<div class="svb-scheduled" style="width: ${scheduledPercent}%;"></div>` : ''}
+                ${sentPercent > 0 ? `<div class="svb-sent" style="width: ${sentPercent}%;"></div>` : ''}
+            </div>
+        `;
+
+        const summaryHtml = `
+            <div class="shipping-visual-summary">
+                <span class="svs-unsent">미발송 ${unsentCount}</span>
+                <span class="svs-divider">|</span>
+                <span class="svs-scheduled">예정 ${scheduledCount}</span>
+                <span class="svs-divider">|</span>
+                <span class="svs-sent">완료 ${sentCount}</span>
+            </div>
+        `;
+
+        return `<div class="shipping-visual-container">${barHtml}${summaryHtml}</div>`;
+    };
+
+    // 테이블 렌더링
+    const renderTable = (ordersToRender) => {
+        orderTableBody.innerHTML = '';
+        if (ordersToRender.length === 0) {
+            orderTableBody.innerHTML = '<tr><td colspan="17" style="text-align:center;">표시할 주문이 없습니다.</td></tr>';
+            return;
+        }
+
+        const isCompact = viewMode === 'compact';
+
+        ordersToRender.forEach((order, index) => {
+            const row = document.createElement('tr');
+            // Calculate unsent boxes for the current order
+            const sweetTotal = parseInt(order.sweetPersimmon) || 0;
+            const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+            let orderSentSweet = 0, orderSentDaebong = 0;
+            let orderScheduledSweet = 0, orderScheduledDaebong = 0;
+
+            (details.sweetPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') orderSentSweet += item.count;
+                else if (item.status === '발송예정') orderScheduledSweet += item.count;
+            });
+            (details.daebongPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') orderSentDaebong += item.count;
+                else if (item.status === '발송예정') orderScheduledDaebong += item.count;
+            });
+            
+            const orderUnsentSweet = sweetTotal - orderSentSweet - orderScheduledSweet;
+            const orderUnsentDaebong = daebongTotal - orderSentDaebong - orderScheduledDaebong;
+
+            // Check for delayed unsent items
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const orderDate = new Date(order.orderDate);
+            const diffTime = today.getTime() - orderDate.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > redThreshold && (orderUnsentSweet > 0 || orderUnsentDaebong > 0)) {
+                row.classList.add('urgency-critical');
+            }
+
+            const senderNameHTML = isCompact ? 
+                `<td class="col-name clickable-name" data-phone="${order.senderPhone}" data-address="${order.senderAddress}">${order.senderName}</td>` : 
+                `<td class="col-name">${order.senderName}</td>`;
+
+            const receiverGroupEndClass = isCompact ? ' col-group-end' : '';
+
+            const receiverNameHTML = isCompact ? 
+                `<td class="col-name clickable-name${receiverGroupEndClass}" data-phone="${order.receiverPhone}" data-address="${order.receiverAddress}">${order.receiverName}</td>` : 
+                `<td class="col-name">${order.receiverName}</td>`;
+            
+            const receiverPhoneHTML = `<td class="col-detail">${order.receiverPhone}</td>`;
+            const receiverAddressHTML = `<td class="col-detail${isCompact ? '' : ' col-group-end'}">${order.receiverAddress}</td>`;
+
+            const totalPrice = (parseInt(order.sweetPersimmon) || 0) * prices.sweet + (parseInt(order.daebongPersimmon) || 0) * prices.daebong;
+
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td class="col-group-end">${formatDateWithDay(order.orderDate)}</td>
+                ${senderNameHTML}
+                <td class="col-detail">${order.senderPhone}</td>
+                <td class="col-detail col-group-end">${order.senderAddress}</td>
+                ${receiverNameHTML}
+                ${receiverPhoneHTML}
+                ${receiverAddressHTML}
+                <td>${order.sweetPersimmon}</td>
+                <td>${order.daebongPersimmon}</td>
+                <td>${formatCurrency(totalPrice)}</td>
+                <td class="payment-status-cell col-group-end" data-id="${order.id}">
+                    <span class="payment-status ${order.paymentStatus ? 'paid' : 'unpaid'}">
+                        ${order.paymentStatus ? 'O' : 'X'}
+                    </span>
+                </td>
+                <td>
+                    ${createShippingStatusVisual(order)}
+                </td>
+                <td class="col-group-end">
+                    <button class="shipping-btn" data-id="${order.id}">배송관리</button>
+                </td>
+
+                <td>${order.notes || ''}</td>
+                <td class="col-group-end">${order.referrer || ''}</td>
+                <td>
+                    <button class="edit-btn" data-id="${order.id}">수정</button>
+                    <button class="delete-btn" data-id="${order.id}">삭제</button>
+                </td>
+            `;
+            orderTableBody.appendChild(row);
+        });
+        document.getElementById('row-count-display').textContent = `총 ${ordersToRender.length}건`;
+    };
+
+    // 데이터 필터링 및 정렬
+    const getFilteredAndSortedOrders = () => {
+        let processedOrders = [...orders];
+        
+        const searchTerm = searchInput.value.toLowerCase();
+        if (searchTerm) {
+            processedOrders = processedOrders.filter(order => 
+                Object.values(order).some(value => 
+                    String(value).toLowerCase().includes(searchTerm)
+                )
+            );
+        }
+
+        processedOrders.forEach(order => {
+            order.totalPrice = (parseInt(order.sweetPersimmon) || 0) * prices.sweet + (parseInt(order.daebongPersimmon) || 0) * prices.daebong;
+        });
+
+        processedOrders.sort((a, b) => {
+            const column = currentSort.column;
+            let valA = a[column];
+            let valB = b[column];
+
+            switch (column) {
+                case 'sweetPersimmon':
+                case 'daebongPersimmon':
+                case 'totalPrice':
+                    valA = parseInt(valA) || 0;
+                    valB = parseInt(valB) || 0;
+                    break;
+                case 'orderDate': // Ensure date sorting works
+                    valA = new Date(valA);
+                    valB = new Date(valB);
+                    break;
+            }
+
+            let comparison = 0;
+            if (valA > valB) comparison = 1; else if (valA < valB) comparison = -1;
+            return currentSort.direction === 'asc' ? comparison : -comparison;
+        });
+
+        return processedOrders;
+    };
+
+    // 모달 관리
+    const openOrderModal = (orderId = null) => {
+        orderForm.reset();
+        if (orderId) {
+            const order = orders.find(o => o.id == orderId);
+            if(order){
+                formTitle.textContent = '주문 수정';
+                document.getElementById('order-id').value = order.id;
+                document.getElementById('sender-name').value = order.senderName;
+                document.getElementById('sender-phone').value = order.senderPhone;
+                document.getElementById('sender-address').value = order.senderAddress;
+                document.getElementById('receiver-name').value = order.receiverName;
+                document.getElementById('receiver-phone').value = order.receiverPhone;
+                document.getElementById('receiver-address').value = order.receiverAddress;
+                document.getElementById('sweet-persimmon').value = order.sweetPersimmon;
+                document.getElementById('daebong-persimmon').value = order.daebongPersimmon;
+                document.getElementById('order-date').value = order.orderDate;
+                document.getElementById('notes').value = order.notes || '';
+                document.getElementById('referrer').value = order.referrer || '';
+                document.getElementById('payment-status').checked = order.paymentStatus || false;
+            }
+        } else {
+            formTitle.textContent = '새 주문';
+            document.getElementById('order-id').value = '';
+            document.getElementById('sender-address').value = '전남 순천시 낙안면 심내길 36';
+            document.getElementById('order-date').value = new Date().toISOString().split('T')[0];
+        }
+        orderModal.style.display = 'flex';
+    };
+    const closeOrderModal = () => { orderModal.style.display = 'none'; };
+
+    const openPriceModal = () => {
+        sweetPriceInput.value = prices.sweet;
+        daebongPriceInput.value = prices.daebong;
+        priceModal.style.display = 'flex';
+    };
+    const closePriceModal = () => { priceModal.style.display = 'none'; };
+
+    const openAggregationModal = () => {
+        renderAggregationResults();
+        aggregationModal.style.display = 'flex';
+    };
+    const closeAggregationModal = () => { aggregationModal.style.display = 'none'; };
+
+    // 배송 관리 모달
+    const openShippingManagementModal = (orderId) => {
+        const order = orders.find(o => o.id == orderId);
+        if (!order) return;
+
+        shippingOrderIdInput.value = orderId;
+        tempShippingDetails = JSON.parse(JSON.stringify(order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] }));
+        editingShippingItem = null;
+
+        renderShippingModal(order);
+        shippingModal.style.display = 'flex';
+    };
+
+    const closeShippingManagementModal = () => {
+        shippingModal.style.display = 'none';
+        editingShippingItem = null;
+    };
+
+    const renderShippingModal = (order) => {
+        const sweetTotal = parseInt(order.sweetPersimmon) || 0;
+        const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+
+        shippingSweetTotal.textContent = sweetTotal;
+        shippingDaebongTotal.textContent = daebongTotal;
+
+        // Calculate scheduled and sent counts for sweet persimmon
+        const sweetScheduledCount = (tempShippingDetails.sweetPersimmon || [])
+            .filter(item => item.status === '발송예정')
+            .reduce((sum, item) => sum + item.count, 0);
+        const sweetSentCount = (tempShippingDetails.sweetPersimmon || [])
+            .filter(item => item.status === '발송완료')
+            .reduce((sum, item) => sum + item.count, 0);
+
+        // Calculate scheduled and sent counts for daebong persimmon
+        const daebongScheduledCount = (tempShippingDetails.daebongPersimmon || [])
+            .filter(item => item.status === '발송예정')
+            .reduce((sum, item) => sum + item.count, 0);
+        const daebongSentCount = (tempShippingDetails.daebongPersimmon || [])
+            .filter(item => item.status === '발송완료')
+            .reduce((sum, item) => sum + item.count, 0);
+
+        // Update headers with counts
+        document.getElementById('sweet-scheduled-header').textContent = `발송 예정 (${sweetScheduledCount}상자)`;
+        document.getElementById('sweet-sent-header').textContent = `발송 완료 (${sweetSentCount}상자)`;
+        document.getElementById('daebong-scheduled-header').textContent = `발송 예정 (${daebongScheduledCount}상자)`;
+        document.getElementById('daebong-sent-header').textContent = `발송 완료 (${daebongSentCount}상자)`;
+
+        renderShippingList('sweetPersimmon', sweetTotal);
+        renderShippingList('daebongPersimmon', daebongTotal);
+        
+        // Clear editing state
+        document.querySelectorAll('.shipping-item.editing').forEach(el => el.classList.remove('editing'));
+        shippingAddForms.forEach(form => {
+            form.reset();
+            form.querySelector('button').textContent = '추가';
+        });
+        editingShippingItem = null;
+    };
+
+    const renderShippingList = (type, total) => {
+        const details = tempShippingDetails[type] || [];
+        let scheduledHtml = '';
+        let sentHtml = '';
+        let currentCount = 0;
+
+        const createLi = (item, originalIndex) => {
+            const isEditing = editingShippingItem && editingShippingItem.type === type && editingShippingItem.originalIndex === originalIndex;
+            const itemClass = `shipping-item status-${item.status === '발송예정' ? 'scheduled' : 'sent'} ${isEditing ? 'editing' : ''}`;
+            return `<li class="${itemClass}" data-type="${type}" data-index="${originalIndex}">
+                        <div class="shipping-item-info">
+                            <span class="shipping-item-date">${item.date}</span>
+                            <span class="shipping-item-count"><strong>${item.count}</strong>상자</span>
+                        </div>
+                        <button class="shipping-delete-btn" data-type="${type}" data-index="${originalIndex}">삭제</button>
+                    </li>`;
+        };
+
+        details.forEach((item, index) => {
+            if (item.status === '발송예정') {
+                scheduledHtml += createLi(item, index);
+            } else if (item.status === '발송완료') {
+                sentHtml += createLi(item, index);
+            }
+            currentCount += item.count;
+        });
+
+        if (type === 'sweetPersimmon') {
+            shippingSweetScheduledList.innerHTML = scheduledHtml;
+            shippingSweetSentList.innerHTML = sentHtml;
+            shippingSweetUnsent.textContent = total - currentCount;
+        } else {
+            shippingDaebongScheduledList.innerHTML = scheduledHtml;
+            shippingDaebongSentList.innerHTML = sentHtml;
+            shippingDaebongUnsent.textContent = total - currentCount;
+        }
+    };
+
+
+    // 데이터 집계
+    const calculateAggregations = () => {
+        const results = {
+            paid: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
+            unpaid: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
+            shipped: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
+            unshipped: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 }, // This will now include unsent and scheduled
+        };
+
+        orders.forEach(order => {
+            const orderSweetTotal = parseInt(order.sweetPersimmon) || 0;
+            const orderDaebongTotal = parseInt(order.daebongPersimmon) || 0;
+
+            // For Payment Status, use total boxes in the order
+            const sweetValue = orderSweetTotal * prices.sweet;
+            const daebongValue = orderDaebongTotal * prices.daebong;
+
+            if (order.paymentStatus) {
+                results.paid.sweet += sweetValue;
+                results.paid.daebong += daebongValue;
+                results.paid.sweetCount += orderSweetTotal;
+                results.paid.daebongCount += orderDaebongTotal;
+            } else {
+                results.unpaid.sweet += sweetValue;
+                results.unpaid.daebong += daebongValue;
+                results.unpaid.sweetCount += orderSweetTotal;
+                results.unpaid.daebongCount += orderDaebongTotal;
+            }
+
+            // For Shipping Status, use shippingDetails
+            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+            let shippedSweet = 0, shippedDaebong = 0;
+            let scheduledSweet = 0, scheduledDaebong = 0;
+
+            (details.sweetPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') shippedSweet += item.count;
+                else if (item.status === '발송예정') scheduledSweet += item.count;
+            });
+            (details.daebongPersimmon || []).forEach(item => {
+                if (item.status === '발송완료') shippedDaebong += item.count;
+                else if (item.status === '발송예정') scheduledDaebong += item.count;
+            });
+
+            const unsentSweet = orderSweetTotal - shippedSweet - scheduledSweet;
+            const unsentDaebong = orderDaebongTotal - shippedDaebong - scheduledDaebong;
+
+            // Shipped
+            results.shipped.sweetCount += shippedSweet;
+            results.shipped.daebongCount += shippedDaebong;
+            results.shipped.sweet += shippedSweet * prices.sweet;
+            results.shipped.daebong += shippedDaebong * prices.daebong;
+
+            // Unshipped (includes unsent and scheduled)
+            results.unshipped.sweetCount += (unsentSweet + scheduledSweet);
+            results.unshipped.daebongCount += (unsentDaebong + scheduledDaebong);
+            results.unshipped.sweet += (unsentSweet + scheduledSweet) * prices.sweet;
+            results.unshipped.daebong += (unsentDaebong + scheduledDaebong) * prices.daebong;
+        });
+
+        results.paid.total = results.paid.sweet + results.paid.daebong;
+        results.unpaid.total = results.unpaid.sweet + results.unpaid.daebong;
+        results.shipped.total = results.shipped.sweet + results.shipped.daebong;
+        results.unshipped.total = results.unshipped.sweet + results.unshipped.daebong;
+
+        return results;
+    };
+
+    const renderAggregationResults = () => {
+        const results = calculateAggregations();
+        const criteria = document.querySelector('input[name="agg-criteria"]:checked').value;
+
+        let html = '';
+        let data, cat1, cat2, cat1Label, cat2Label;
+
+        if (criteria === 'payment') {
+            data = results;
+            cat1 = 'paid';
+            cat2 = 'unpaid';
+            cat1Label = '입금 완료';
+            cat2Label = '미입금';
+            html = `<h3>입금여부 기준 집계</h3>`;
+        } else { // shipping
+            data = results;
+            cat1 = 'shipped';
+            cat2 = 'unshipped';
+            cat1Label = '발송 완료';
+            cat2Label = '미발송';
+            html = `<h3>발송여부 기준 집계</h3>`;
+        }
+
+        const totalSweetCount = data[cat1].sweetCount + data[cat2].sweetCount;
+        const totalDaebongCount = data[cat1].daebongCount + data[cat2].daebongCount;
+        const totalSweetValue = data[cat1].sweet + data[cat2].sweet;
+        const totalDaebongValue = data[cat1].daebong + data[cat2].daebong;
+        const grandTotal = data[cat1].total + data[cat2].total;
+
+        html += `
+            <table>
+                <thead>
+                    <tr>
+                        <th>항목</th>
+                        <th>단감(금액)</th>
+                        <th>단감(수량)</th>
+                        <th>대봉(금액)</th>
+                        <th>대봉(수량)</th>
+                        <th>합계</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>${cat1Label}</td>
+                        <td>${formatCurrency(data[cat1].sweet)}</td>
+                        <td>${data[cat1].sweetCount}</td>
+                        <td>${formatCurrency(data[cat1].daebong)}</td>
+                        <td>${data[cat1].daebongCount}</td>
+                        <td>${formatCurrency(data[cat1].total)}</td>
+                    </tr>
+                    <tr>
+                        <td>${cat2Label}</td>
+                        <td>${formatCurrency(data[cat2].sweet)}</td>
+                        <td>${data[cat2].sweetCount}</td>
+                        <td>${formatCurrency(data[cat2].daebong)}</td>
+                        <td>${data[cat2].daebongCount}</td>
+                        <td>${formatCurrency(data[cat2].total)}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>총계</th>
+                        <td>${formatCurrency(totalSweetValue)}</td>
+                        <td>${totalSweetCount}</td>
+                        <td>${formatCurrency(totalDaebongValue)}</td>
+                        <td>${totalDaebongCount}</td>
+                        <td>${formatCurrency(grandTotal)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+        aggregationResults.innerHTML = html;
+    };
+
+    // 파일 저장/불러오기
+    const saveStateToFile = () => {
+        const appState = {
+            orders: orders,
+            prices: prices,
+            redThreshold: redThreshold,
+            viewMode: viewMode
+        };
+        const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'gam_data.json';
+        link.click();
+    };
+
+    const loadStateFromFile = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const appState = JSON.parse(event.target.result);
+                orders = appState.orders || [];
+                prices = appState.prices || { sweet: 25000, daebong: 20000 };
+                redThreshold = appState.redThreshold || 7;
+                viewMode = appState.viewMode || 'compact';
+                
+                orders.forEach(order => {
+                    order.shippingDetails = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+                });
+
+                alert('데이터를 성공적으로 불러왔습니다.');
+            } catch (error) {
+                alert('파일을 읽는 중 오류가 발생했습니다. 유효한 데이터 파일인지 확인해주세요.');
+                console.error("Failed to parse JSON file:", error);
+            }
+            refreshUI();
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // 동일한 파일을 다시 불러올 수 있도록 초기화
+    };
+
+    // 이벤트 리스너
+    newOrderBtn.addEventListener('click', () => openOrderModal());
+    closeOrderModalBtn.addEventListener('click', closeOrderModal);
+    priceSettingsBtn.addEventListener('click', openPriceModal);
+    closePriceModalBtn.addEventListener('click', closePriceModal);
+    aggregationBtn.addEventListener('click', openAggregationModal);
+    closeAggregationModalBtn.addEventListener('click', closeAggregationModal);
+    aggregationControls.addEventListener('change', renderAggregationResults);
+    saveDataBtn.addEventListener('click', saveStateToFile);
+    loadDataInput.addEventListener('change', loadStateFromFile);
+    closeShippingModalBtn.addEventListener('click', closeShippingManagementModal);
+
+    window.addEventListener('click', (e) => { 
+        if (e.target === orderModal) closeOrderModal();
+        if (e.target === priceModal) closePriceModal();
+        if (e.target === aggregationModal) closeAggregationModal();
+        if (e.target === shippingModal) closeShippingManagementModal();
+    });
+
+    toggleViewBtn.addEventListener('click', () => {
+        viewMode = viewMode === 'compact' ? 'expanded' : 'compact';
+        refreshUI();
+        saveStateToLocalStorage();
+    });
+
+    resetViewBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        refreshUI();
+        saveStateToLocalStorage();
+    });
+
+    orderForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('order-id').value;
+        const orderData = {
+            senderName: document.getElementById('sender-name').value,
+            senderPhone: document.getElementById('sender-phone').value,
+            senderAddress: document.getElementById('sender-address').value,
+            receiverName: document.getElementById('receiver-name').value,
+            receiverPhone: document.getElementById('receiver-phone').value,
+            receiverAddress: document.getElementById('receiver-address').value,
+            sweetPersimmon: document.getElementById('sweet-persimmon').value,
+            daebongPersimmon: document.getElementById('daebong-persimmon').value,
+            orderDate: document.getElementById('order-date').value,
+            notes: document.getElementById('notes').value,
+            referrer: document.getElementById('referrer').value,
+            paymentStatus: document.getElementById('payment-status').checked
+        };
+        if (id) {
+            const index = orders.findIndex(o => o.id == id);
+            if(index !== -1) orders[index] = { ...orders[index], ...orderData };
+        } else {
+            orders.push({ 
+                id: Date.now(), 
+                status: '미발송', 
+                shippingDate: null, 
+                shippingDetails: { sweetPersimmon: [], daebongPersimmon: [] },
+                ...orderData 
+            });
+        }
+        refreshUI();
+        closeOrderModal();
+        saveStateToLocalStorage();
+    });
+
+    priceSettingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        prices.sweet = parseInt(sweetPriceInput.value) || 0;
+        prices.daebong = parseInt(daebongPriceInput.value) || 0;
+        refreshUI();
+        closePriceModal();
+        saveStateToLocalStorage();
+    });
+
+    orderTableBody.addEventListener('click', (e) => {
+        const target = e.target;
+        const id = target.dataset.id;
+
+        if (target.classList.contains('shipping-btn')) {
+            openShippingManagementModal(parseInt(id));
+        } else if (target.classList.contains('edit-btn')) {
+            openOrderModal(parseInt(id));
+        } else if (target.classList.contains('delete-btn')) {
+            if (confirm('정말로 이 주문을 삭제하시겠습니까?')) {
+                orders = orders.filter(o => o.id != id);
+                refreshUI();
+                saveStateToLocalStorage();
+            }
+        } else {
+            const targetCell = target.closest('td');
+            if (!targetCell) return;
+            const cellId = targetCell.dataset.id;
+
+            if (targetCell.classList.contains('payment-status-cell')) {
+                const index = orders.findIndex(o => o.id == cellId);
+                if (index !== -1) {
+                    orders[index].paymentStatus = !orders[index].paymentStatus;
+                    refreshUI();
+                    saveStateToLocalStorage();
+                }
+            } else if (targetCell.classList.contains('clickable-name')) {
+                const phone = targetCell.dataset.phone;
+                const address = targetCell.dataset.address;
+                alert(`연락처: ${phone}\n주소: ${address}`);
+            }
+        }
+    });
+
+    shippingAddForms.forEach(form => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = e.target.dataset.type;
+            const countInput = e.target.querySelector('input[type="number"]');
+            const dateInput = e.target.querySelector('input[type="date"]');
+            const statusInput = e.target.querySelector('select');
+
+            const count = parseInt(countInput.value);
+            const date = dateInput.value;
+            const status = statusInput.value;
+
+            if (!count || !date || !status) {
+                alert('수량, 날짜, 상태를 모두 입력해주세요.');
+                return;
+            }
+
+            const orderId = shippingOrderIdInput.value;
+            const order = orders.find(o => o.id == orderId);
+            const total = parseInt(order[type]) || 0;
+            
+            let currentTotalInDetails = 0;
+            if (editingShippingItem) {
+                // 수정 시에는 현재 수정 중인 항목의 수량을 제외하고 계산
+                currentTotalInDetails = (tempShippingDetails[type] || [])
+                    .filter((_, i) => i !== editingShippingItem.originalIndex)
+                    .reduce((sum, item) => sum + item.count, 0);
+            } else {
+                currentTotalInDetails = (tempShippingDetails[type] || []).reduce((sum, item) => sum + item.count, 0);
+            }
+
+            if (currentTotalInDetails + count > total) {
+                alert('총 주문 수량을 초과할 수 없습니다.');
+                return;
+            }
+
+            if (editingShippingItem) {
+                // 수정 모드
+                const itemToEdit = tempShippingDetails[editingShippingItem.type][editingShippingItem.originalIndex];
+                itemToEdit.count = count;
+                itemToEdit.date = date;
+                itemToEdit.status = status;
+            } else {
+                // 추가 모드
+                const existingEntry = (tempShippingDetails[type] || []).find(item => item.date === date && item.status === status);
+                if (existingEntry) {
+                    existingEntry.count += count;
+                } else {
+                    tempShippingDetails[type].push({ status, date, count });
+                }
+            }
+            
+            e.target.reset();
+            renderShippingModal(order);
+        });
+    });
+
+    const setupShippingListEventListeners = (listElement) => {
+        listElement.addEventListener('click', (e) => {
+            const orderId = shippingOrderIdInput.value;
+            const order = orders.find(o => o.id == orderId);
+            const target = e.target;
+
+            if (target.classList.contains('shipping-delete-btn')) {
+                e.stopPropagation(); // Prevent li click event
+                const type = target.dataset.type;
+                const originalIndex = parseInt(target.dataset.index);
+                
+                tempShippingDetails[type].splice(originalIndex, 1);
+                renderShippingModal(order);
+
+            } else if (target.closest('.shipping-item')) {
+                const li = target.closest('.shipping-item');
+                const type = li.dataset.type;
+                const originalIndex = parseInt(li.dataset.index);
+                const status = li.dataset.status;
+
+                const item = tempShippingDetails[type][originalIndex];
+                if (!item) return;
+
+                editingShippingItem = { type, originalIndex, status };
+
+                const form = document.querySelector(`.shipping-add-form[data-type="${type}"]`);
+                form.querySelector('input[type="number"]').value = item.count;
+                form.querySelector('input[type="date"]').value = item.date;
+                form.querySelector('select').value = item.status;
+                form.querySelector('button').textContent = '수정';
+
+                document.querySelectorAll('.shipping-item.editing').forEach(el => el.classList.remove('editing'));
+                li.classList.add('editing');
+            }
+        });
+    };
+
+    setupShippingListEventListeners(shippingSweetScheduledList);
+    setupShippingListEventListeners(shippingSweetSentList);
+    setupShippingListEventListeners(shippingDaebongScheduledList);
+    setupShippingListEventListeners(shippingDaebongSentList);
+
+    shippingModalSaveBtn.addEventListener('click', () => {
+        const orderId = shippingOrderIdInput.value;
+        const index = orders.findIndex(o => o.id == orderId);
+        if (index !== -1) {
+            // Run the update logic DIRECTLY on tempShippingDetails before saving
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            ['sweetPersimmon', 'daebongPersimmon'].forEach(type => {
+                const details = tempShippingDetails[type] || [];
+                const updatedDetails = [];
+                const itemsToConvert = [];
+
+                details.forEach(item => {
+                    const itemDate = new Date(item.date + 'T00:00:00');
+                    if (item.status === '발송예정' && itemDate < today) {
+                        itemsToConvert.push({ ...item, status: '발송완료' });
+                    } else {
+                        updatedDetails.push(item);
+                    }
+                });
+
+                itemsToConvert.forEach(convertedItem => {
+                    const existing = updatedDetails.find(i => i.date === convertedItem.date && i.status === '발송완료');
+                    if (existing) {
+                        existing.count += convertedItem.count;
+                    } else {
+                        updatedDetails.push(convertedItem);
+                    }
+                });
+                tempShippingDetails[type] = updatedDetails;
+            });
+
+            // Sort by date before saving
+            tempShippingDetails.sweetPersimmon.sort((a, b) => new Date(a.date) - new Date(b.date));
+            tempShippingDetails.daebongPersimmon.sort((a, b) => new Date(a.date) - new Date(b.date));
+            orders[index].shippingDetails = JSON.parse(JSON.stringify(tempShippingDetails));
+
+            // Add new logic to update overall status
+            const order = orders[index];
+            const sweetTotal = parseInt(order.sweetPersimmon) || 0;
+            const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+            const totalBoxes = sweetTotal + daebongTotal;
+
+            let sentCount = 0;
+            let scheduledCount = 0;
+            let firstShippingDate = null;
+
+            const allItems = [
+                ...(order.shippingDetails.sweetPersimmon || []),
+                ...(order.shippingDetails.daebongPersimmon || [])
+            ];
+
+            allItems.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            allItems.forEach(item => {
+                if (item.status === '발송완료') sentCount += item.count;
+                if (item.status === '발송예정') scheduledCount += item.count;
+                if (!firstShippingDate) firstShippingDate = item.date;
+            });
+
+            if (totalBoxes > 0 && sentCount === totalBoxes) {
+                order.status = '발송완료';
+            } else if (scheduledCount > 0 || sentCount > 0) {
+                order.status = '발송예정';
+            } else {
+                order.status = '미발송';
+            }
+            // Update the main shippingDate to the earliest date from details
+            order.shippingDate = firstShippingDate;
+        }
+        
+        closeShippingManagementModal();
+        refreshUI();
+        saveStateToLocalStorage();
+    });
+
+
+    searchInput.addEventListener('input', () => renderTable(getFilteredAndSortedOrders()));
+
+    document.querySelectorAll('th[data-sort]').forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.dataset.sort;
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'desc';
+            }
+            refreshUI();
+        });
+    });
+
+    redThresholdInput.addEventListener('change', () => {
+        redThreshold = parseInt(redThresholdInput.value) || 7;
+        refreshUI();
+        saveStateToLocalStorage();
+    });
+
+    exportScheduledBtn.addEventListener('click', () => {
+        const itemsToExport = [];
+        let itemIndex = 1; // For sequential numbering
+
+        orders.forEach(order => {
+            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+            
+            (details.sweetPersimmon || []).forEach(item => {
+                if (item.status === '발송예정') {
+                    itemsToExport.push({
+                        '번호': itemIndex++,
+                        '발송예정일': item.date,
+                        '받는 분': order.receiverName,
+                        '연락처': order.receiverPhone,
+                        '주소': order.receiverAddress,
+                        '품목': '단감',
+                        '수량': item.count,
+                        '특이사항': order.notes || ''
+                    });
+                }
+            });
+    
+            (details.daebongPersimmon || []).forEach(item => {
+                if (item.status === '발송예정') {
+                    itemsToExport.push({
+                        '번호': itemIndex++,
+                        '발송예정일': item.date,
+                        '받는 분': order.receiverName,
+                        '연락처': order.receiverPhone,
+                        '주소': order.receiverAddress,
+                        '품목': '대봉',
+                        '수량': item.count,
+                        '특이사항': order.notes || ''
+                    });
+                }
+            });
+        });
+    
+        if (itemsToExport.length === 0) {
+            alert('발송예정인 주문이 없습니다.');
+            return;
+        }
+    
+        // Sort by date
+        itemsToExport.sort((a, b) => new Date(a['발송예정일']) - new Date(b['발송예정일']));
+    
+        // Define column widths
+        const ws_cols = [
+            { wch: 8 },  // 번호
+            { wch: 15 }, // 발송예정일
+            { wch: 12 }, // 받는 분
+            { wch: 15 }, // 연락처
+            { wch: 30 }, // 주소
+            { wch: 8 },  // 품목
+            { wch: 8 },  // 수량
+            { wch: 25 }  // 특이사항
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(itemsToExport);
+        worksheet['!cols'] = ws_cols; // Apply column widths
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '발송예정 목록');
+        
+        const today = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `발송예정_목록_${today}.xlsx`);
+    });
+    
+    // 로컬 스토리지에 상태 저장
+    const saveStateToLocalStorage = () => {
+        const appState = {
+            orders: orders,
+            prices: prices,
+            redThreshold: redThreshold,
+            viewMode: viewMode,
+            currentSort: currentSort
+        };
+        localStorage.setItem('gamAppState', JSON.stringify(appState));
+    };
+
+    // 로컬 스토리지에서 상태 불러오기
+    const loadStateFromLocalStorage = () => {
+        const savedState = localStorage.getItem('gamAppState');
+        if (savedState) {
+            try {
+                const appState = JSON.parse(savedState);
+                orders = appState.orders || [];
+                prices = appState.prices || { sweet: 25000, daebong: 20000 };
+                redThreshold = appState.redThreshold || 7;
+                viewMode = appState.viewMode || 'compact';
+                currentSort = appState.currentSort || { column: 'orderDate', direction: 'desc' };
+                // If shippingDate column was removed, reset sort if it was set to shippingDate
+                if (currentSort.column === 'shippingDate') {
+                    currentSort = { column: 'orderDate', direction: 'desc' };
+                }
+
+                orders.forEach(order => {
+                    order.shippingDetails = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+                });
+
+            } catch (error) {
+                console.error("Failed to parse app state from local storage:", error);
+                // 오류 발생 시 기본값으로 초기화
+                orders = [];
+                redThreshold = 7;
+                viewMode = 'compact';
+                prices = { sweet: 25000, daebong: 20000 };
+                currentSort = { column: 'orderDate', direction: 'desc' };
+            }
+        }
+    };
+
+    const updateScheduledToSent = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        orders.forEach(order => {
+            if (!order.shippingDetails) return;
+
+            ['sweetPersimmon', 'daebongPersimmon'].forEach(type => {
+                const updatedDetails = [];
+                const itemsToConvert = [];
+
+                (order.shippingDetails[type] || []).forEach(item => {
+                    // Use T00:00:00 to ensure date is parsed in local time zone
+                    const itemDate = new Date(item.date + 'T00:00:00');
+                    if (item.status === '발송예정' && itemDate < today) {
+                        itemsToConvert.push({ ...item, status: '발송완료' });
+                    } else {
+                        updatedDetails.push(item);
+                    }
+                });
+
+                itemsToConvert.forEach(convertedItem => {
+                    const existing = updatedDetails.find(i => i.date === convertedItem.date && i.status === '발송완료');
+                    if (existing) {
+                        existing.count += convertedItem.count;
+                    } else {
+                        updatedDetails.push(convertedItem);
+                    }
+                });
+                order.shippingDetails[type] = updatedDetails;
+            });
+        });
+    };
+
+    // 초기화
+    const initialize = () => {
+        loadStateFromLocalStorage(); // 로컬 스토리지에서 상태 로드
+        updateScheduledToSent();
+        refreshUI();
+    };
+
+    initialize();
+    // 페이지를 닫거나 새로고침하기 전에 상태 저장
+    window.addEventListener('beforeunload', saveStateToLocalStorage);
+});

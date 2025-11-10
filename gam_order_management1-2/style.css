@@ -1,0 +1,689 @@
+/* ===================================
+   50대 사용자를 위한 편안한 UI 디자인
+   =================================== */
+
+/* 기본 스타일 */
+body {
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    font-size: 16px; /* 기본 폰트 크기 증가 */
+    background-color: #f7f9fc;
+    color: #212529; /* 매우 진한 회색으로 눈의 피로 감소 */
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1600px;
+    margin: auto;
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* 헤더 */
+.main-header {
+    background-color: #005a9c; /* 차분하고 신뢰감 있는 파란색 */
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 30px;
+}
+
+.main-header h1 {
+    color: #ffffff;
+    margin: 0;
+    text-align: center;
+    font-size: 26px; /* 제목 폰트 크기 */
+    font-weight: 600;
+}
+
+/* 대시보드 */
+.dashboard {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px; /* This handles vertical gap */
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+}
+
+.summary-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    background-color: #f8f9fa; /* Revert to slightly darker background for group */
+    border-radius: 8px;
+    border: 1px solid #dee2e6; /* Revert to default border */
+    flex-grow: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
+    min-width: 200px; /* Ensure groups don't get too small */
+}
+
+.summary-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    text-align: center;
+    flex-grow: 1;
+    min-width: 160px;
+    cursor: default;
+    transition: none;
+}
+
+.summary-item:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.summary-item.active {
+    border: 1px solid #007bff;
+    box-shadow: none;
+}
+
+.summary-item p {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 16px;
+}
+
+.summary-item span {
+    font-size: 26px;
+    font-weight: 700;
+    color: #005a9c;
+}
+
+.delayed-summary {
+    background-color: #fff4f4;
+    border-color: #f5c6cb;
+}
+
+.delayed-summary span {
+    color: #d94848;
+}
+
+/* Dashboard Group Specific Styles */
+.total-orders-group {
+    background-color: #e0f2f7; /* Light blue */
+    border-color: #a7d9ed;
+}
+.total-orders-group .summary-item span {
+    color: #007bff; /* Blue text */
+}
+.total-orders-group .summary-item {
+    background-color: #e0f2f7; /* Light blue for inner items */
+    border-color: #a7d9ed; /* Light blue border for inner items */
+}
+
+.sent-group .summary-item span {
+    color: #28a745; /* Green text */
+}
+
+.unsent-group .summary-item span {
+    color: #fd7e14; /* Muted orange text */
+}
+
+.scheduled-group .summary-item span {
+    color: #6f42c1; /* Muted purple text */
+}
+
+/* 메뉴 및 컨트롤 */
+.menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.menu-left {
+    display: flex;
+    gap: 8px;
+}
+
+#search-input {
+    padding: 12px;
+    border: 1px solid #adb5bd;
+    border-radius: 6px;
+    width: 300px;
+    font-size: 16px; /* 입력창 폰트 크기 증가 */
+}
+
+/* 기본 버튼 스타일 */
+button, .file-btn {
+    padding: 12px 20px; /* 버튼 크기 증가 */
+    border: none;
+    border-radius: 6px;
+    background-color: #007bff; /* 명확한 파란색 버튼 */
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+button:hover, .file-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 보조 버튼 (아웃라인 스타일) */
+.btn-secondary {
+    background-color: transparent;
+    border: 1px solid;
+    color: #495057;
+}
+
+.btn-secondary:hover {
+    color: white;
+}
+
+/* 보조 버튼 색상 구분 */
+#price-settings-btn.btn-secondary,
+#aggregation-btn.btn-secondary,
+#save-data-btn.btn-secondary,
+label[for="load-data-input"].btn-secondary {
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+#price-settings-btn.btn-secondary:hover,
+#aggregation-btn.btn-secondary:hover,
+#save-data-btn.btn-secondary:hover,
+label[for="load-data-input"].btn-secondary:hover {
+    background-color: #17a2b8;
+}
+
+#export-scheduled-btn.btn-secondary {
+    border-color: #28a745;
+    color: #28a745;
+}
+#export-scheduled-btn.btn-secondary:hover {
+    background-color: #28a745;
+}
+
+
+/* 테이블 영역 (범례와 테이블을 감싸는) */
+.table-area {
+    margin-top: 20px;
+}
+
+/* 범례 및 기준 설정 */
+.legend {
+    display: flex; /* Flexbox 레이아웃 사용 */
+    justify-content: space-between; /* 양쪽 끝 정렬 */
+    align-items: center; /* 수직 중앙 정렬 */
+    margin-bottom: 15px;
+    padding: 15px;
+    background-color: #e9ecef;
+    border-radius: 6px;
+    font-size: 16px;
+    width: 100%; /* 너비를 100%로 설정 */
+    box-sizing: border-box; /* 패딩과 테두리를 너비에 포함 */
+}
+
+.legend-group-left {
+    display: flex;
+}
+
+#reset-view-btn {
+    background: none;
+    border: 1px solid #adb5bd;
+    color: #495057;
+    padding: 8px 12px;
+    font-size: 20px;
+    line-height: 1;
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+#toggle-view-btn {
+    margin-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#row-count-display {
+    font-size: 18px;
+    font-weight: 700;
+    color: #005a9c;
+    background-color: #eaf0ff;
+    padding: 7px 14px;
+    border-radius: 16px;
+}
+
+#reset-view-btn:hover {
+    background-color: #ced4da;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+}
+
+.legend-item input[type="number"] {
+    width: 50px;
+    font-size: 16px;
+    padding: 5px;
+    margin: 0 8px;
+    text-align: center;
+    border: 1px solid #adb5bd;
+    border-radius: 4px;
+}
+
+.color-box {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: 1px solid #888;
+}
+
+.color-box.urgency-critical {
+    background-color: #f8d7da;
+}
+
+/* 테이블 */
+.order-list {
+    overflow-y: auto;
+    max-height: 90vh; /* 테이블 높이 확보 */
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    background-color: #e9ecef;
+    z-index: 10;
+    font-size: 17px;
+    font-weight: 600;
+    border-bottom: 2px solid #adb5bd;
+}
+
+th, td {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tbody tr.urgency-critical {
+    background-color: #f8d7da !important;
+    font-weight: 500;
+}
+
+/* 모달 */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 30px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 550px; /* 모달 최대 너비 줄임 */
+    max-height: 80vh; /* 모달 최대 높이 설정 */
+    overflow-y: auto; /* 내용이 넘칠 경우 스크롤바 생성 */
+    border-radius: 8px;
+    position: relative;
+}
+
+.close-btn {
+    color: #aaa;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.form-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #34495e;
+    font-size: 20px;
+}
+
+#order-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+#order-form input, #order-form textarea {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+#order-form textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+#order-form button[type="submit"] {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.form-control-group-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.form-control-group-box label {
+    margin-bottom: 0;
+}
+#payment-status {
+    width: 20px;
+    height: 20px;
+}
+
+/* 보기 모드 스타일 */
+.view-compact .col-detail {
+    display: none;
+}
+
+.view-compact .col-name.clickable-name {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #0056b3;
+    font-weight: 600;
+}
+
+th.col-group-end, td.col-group-end {
+    border-right: 2px solid #9eb2d0;
+}
+
+.payment-status-cell {
+    cursor: pointer;
+    text-align: center !important;
+}
+
+.payment-status {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    line-height: 25px;
+    border-radius: 50%;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+}
+
+.payment-status.paid {
+    background-color: #28a745; /* Green */
+}
+
+.payment-status.unpaid {
+    background-color: #dc3545; /* Red */
+}
+
+/* 데이터 집계 모달 */
+.aggregation-controls {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+.aggregation-controls label {
+    margin-right: 15px;
+}
+
+#aggregation-results h3 {
+    color: #005a9c;
+    margin-bottom: 10px;
+}
+
+#aggregation-results table {
+    margin-top: 10px;
+}
+
+#aggregation-results tfoot {
+    font-weight: bold;
+    background-color: #e9ecef;
+}
+
+/* 배송 관리 모달 */
+.modal-content.large {
+    max-width: 900px; /* 더 넓은 모달 */
+}
+
+.shipping-management-body {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.shipping-section {
+    flex: 1;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.shipping-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #005a9c;
+    border-bottom: 2px solid #005a9c;
+    padding-bottom: 10px;
+}
+
+.shipping-status-group {
+    margin-bottom: 20px;
+}
+
+.shipping-status-group strong {
+    font-size: 18px;
+    color: #495057;
+}
+
+.shipping-status-group ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.shipping-status-group li {
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ced4da;
+}
+
+.shipping-add-form {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.shipping-add-form input,
+.shipping-add-form select {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.shipping-add-form input[type="number"] {
+    width: 60px;
+}
+
+.shipping-add-form button {
+    padding: 8px 15px;
+}
+
+.shipping-delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#shipping-modal-save-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+}
+
+/* 배송 관리 모달 UI 개선 */
+.shipping-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-left-width: 5px;
+}
+
+.shipping-item:hover {
+    background-color: #e9ecef;
+}
+
+.shipping-item.status-scheduled {
+    border-left-color: #007bff; /* 더 강한 파란색 */
+    background-color: #e7f3ff; /* 밝고 깨끗한 파란색 */
+    font-weight: 600; /* 전체 항목을 굵게 */
+}
+.shipping-item.status-scheduled span {
+    color: #0056b3; /* 텍스트를 위한 더 어두운 파란색 */
+}
+
+.shipping-item.status-sent {
+    border-left-color: #20c997; /* 생생한 청록색/녹색 */
+    background-color: #e6fffa; /* 매우 밝은 청록색 */
+    font-weight: normal; /* 발송된 항목은 보통 굵기 유지 */
+    color: #555;
+}
+.shipping-item.status-sent span {
+    color: #087f5b; /* 텍스트를 위한 더 어두운 청록색 */
+}
+.shipping-item.status-sent .shipping-item-count {
+    /* 수량 부분은 취소선 제거 */
+}
+
+
+.shipping-item.editing {
+    background-color: #fff3cd; /* 노란색 하이라이트 */
+    border-left-color: #ffc107;
+    font-weight: 600;
+    text-decoration: none; /* 수정 중일 때는 취소선 제거 */
+}
+.shipping-item.editing span {
+    text-decoration: none;
+}
+
+.shipping-item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-grow: 1;
+    margin-right: 15px;
+}
+
+.shipping-item-count strong {
+    font-size: 1.1em;
+    color: #333;
+}
+
+/* Shipping Visualization */
+.shipping-visual-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.shipping-visual-bar {
+    display: flex;
+    width: 100%;
+    height: 18px; /* 높이 살짝 줄임 */
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: #e9ecef;
+}
+
+.svb-unsent, .svb-scheduled, .svb-sent {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.svb-unsent {
+    background-color: #6c757d; /* Gray for unsent */
+}
+
+.svb-scheduled {
+    background-color: #007bff; /* Blue for scheduled */
+}
+
+.svb-sent {
+    background-color: #28a745; /* Green for sent */
+}
+
+.shipping-visual-summary {
+    display: flex;
+    justify-content: space-around;
+    font-size: 12px;
+    color: #6c757d;
+}
+.shipping-visual-summary .svs-divider {
+    color: #ced4da;
+}
+.shipping-visual-summary .svs-scheduled {
+    color: #007bff;
+    font-weight: 500;
+}
+.shipping-visual-summary .svs-sent {
+    color: #28a745;
+    font-weight: 500;
+}
+
