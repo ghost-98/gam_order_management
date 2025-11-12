@@ -29,49 +29,55 @@
                     <span id="db-total-daebong">0</span>
                 </div>
             </div>
-            <!-- 발송 완료 -->
-            <div class="summary-group sent-group">
-                <div class="summary-item">
-                    <p>발송완료 주문</p>
-                    <span id="db-sent-orders">0</span>
+            <!-- 발송 완료, 미발송, 발송 예약 그룹을 합친 새로운 그룹 -->
+            <div class="summary-group merged-center-group">
+                <!-- 상단 병합 영역 -->
+                <div class="summary-item merged-top-item">
+                    <h3>주문 상태별 현황</h3>
+                    <div class="merged-item-container">
+                        <div class="summary-item item-sent">
+                            <p>발송완료 주문</p>
+                            <span id="db-sent-orders">0</span>
+                        </div>
+                        <div class="summary-item item-unsent">
+                            <p>미발송 주문</p>
+                            <span id="db-unsent-orders">0</span>
+                        </div>
+                        <div class="summary-item item-scheduled">
+                            <p>발송예약 주문</p>
+                            <span id="db-scheduled-orders">0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="summary-item">
-                    <p>발송완료 단감</p>
-                    <span id="db-sent-sweet">0</span>
-                </div>
-                <div class="summary-item">
-                    <p>발송완료 대봉</p>
-                    <span id="db-sent-daebong">0</span>
-                </div>
-            </div>
-            <!-- 미발송 -->
-            <div class="summary-group unsent-group">
-                <div class="summary-item">
-                    <p>미발송 주문</p>
-                    <span id="db-unsent-orders">0</span>
-                </div>
-                <div class="summary-item">
-                    <p>미발송 단감</p>
-                    <span id="db-unsent-sweet">0</span>
-                </div>
-                <div class="summary-item">
-                    <p>미발송 대봉</p>
-                    <span id="db-unsent-daebong">0</span>
-                </div>
-            </div>
-            <!-- 발송 예약 -->
-            <div class="summary-group scheduled-group">
-                <div class="summary-item">
-                    <p>발송예약 주문</p>
-                    <span id="db-scheduled-orders">0</span>
-                </div>
-                <div class="summary-item">
-                    <p>발송예약 단감</p>
-                    <span id="db-scheduled-sweet">0</span>
-                </div>
-                <div class="summary-item">
-                    <p>발송예약 대봉</p>
-                    <span id="db-scheduled-daebong">0</span>
+                <!-- 하단 병합 영역 -->
+                <div class="summary-item merged-bottom-item">
+                    <h3>품목별 발송 현황</h3>
+                    <div class="merged-item-container">
+                        <div class="summary-item item-sent">
+                            <p>발송완료 단감</p>
+                            <span id="db-sent-sweet">0</span>
+                        </div>
+                        <div class="summary-item item-unsent">
+                            <p>미발송 단감</p>
+                            <span id="db-unsent-sweet">0</span>
+                        </div>
+                        <div class="summary-item item-scheduled">
+                            <p>발송예약 단감</p>
+                            <span id="db-scheduled-sweet">0</span>
+                        </div>
+                        <div class="summary-item item-sent">
+                            <p>발송완료 대봉</p>
+                            <span id="db-sent-daebong">0</span>
+                        </div>
+                        <div class="summary-item item-unsent">
+                            <p>미발송 대봉</p>
+                            <span id="db-unsent-daebong">0</span>
+                        </div>
+                        <div class="summary-item item-scheduled">
+                            <p>발송예약 대봉</p>
+                            <span id="db-scheduled-daebong">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <!-- 지연 -->

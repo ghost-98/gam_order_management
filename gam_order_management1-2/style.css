@@ -5,9 +5,9 @@
 /* 기본 스타일 */
 body {
     font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-    font-size: 16px; /* 기본 폰트 크기 증가 */
+    font-size: 16px;
     background-color: #f7f9fc;
-    color: #212529; /* 매우 진한 회색으로 눈의 피로 감소 */
+    color: #212529;
     margin: 0;
     padding: 20px;
 }
@@ -23,7 +23,7 @@ body {
 
 /* 헤더 */
 .main-header {
-    background-color: #005a9c; /* 차분하고 신뢰감 있는 파란색 */
+    background-color: #005a9c;
     padding: 20px;
     border-radius: 6px;
     margin-bottom: 30px;
@@ -33,7 +33,7 @@ body {
     color: #ffffff;
     margin: 0;
     text-align: center;
-    font-size: 26px; /* 제목 폰트 크기 */
+    font-size: 26px;
     font-weight: 600;
 }
 
@@ -42,11 +42,12 @@ body {
     display: flex;
     justify-content: space-around;
     flex-wrap: wrap;
-    gap: 20px; /* This handles vertical gap */
+    gap: 20px;
     margin-bottom: 30px;
     padding: 20px;
     background-color: #f1f3f5;
     border-radius: 8px;
+    align-items: stretch;
 }
 
 .summary-group {
@@ -54,12 +55,12 @@ body {
     flex-direction: column;
     gap: 15px;
     padding: 15px;
-    background-color: #f8f9fa; /* Revert to slightly darker background for group */
+    background-color: #f8f9fa;
     border-radius: 8px;
-    border: 1px solid #dee2e6; /* Revert to default border */
+    border: 1px solid #dee2e6;
     flex-grow: 1;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
-    min-width: 200px; /* Ensure groups don't get too small */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    min-width: 200px;
 }
 
 .summary-item {
@@ -80,8 +81,8 @@ body {
 }
 
 .summary-item.active {
-    border: 2px solid #0056b3; /* Darker, more prominent blue border */
-    box-shadow: 0 0 10px rgba(0, 86, 179, 0.4); /* Stronger shadow for active state */
+    border: 2px solid #0056b3;
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.4);
 }
 
 .summary-item p {
@@ -107,27 +108,89 @@ body {
 
 /* Dashboard Group Specific Styles */
 .total-orders-group {
-    background-color: #e0f2f7; /* Light blue */
+    background-color: #e0f2f7;
+    border-color: #a7d9ed;
+}
+.total-orders-group .summary-item {
+    background-color: #e0f2f7;
     border-color: #a7d9ed;
 }
 .total-orders-group .summary-item span {
-    color: #007bff; /* Blue text */
-}
-.total-orders-group .summary-item {
-    background-color: #e0f2f7; /* Light blue for inner items */
-    border-color: #a7d9ed; /* Light blue border for inner items */
+    color: #007bff;
 }
 
-.sent-group .summary-item span {
+/* 대시보드 아이템 상태별 색상 */
+.item-sent span {
     color: #28a745; /* Green text */
 }
 
-.unsent-group .summary-item span {
+.item-unsent span {
     color: #fd7e14; /* Muted orange text */
 }
 
-.scheduled-group .summary-item span {
+.item-scheduled span {
     color: #6f42c1; /* Muted purple text */
+}
+
+/* 병합된 대시보드 그룹 스타일 */
+.merged-center-group {
+    flex-grow: 3;
+    min-width: 550px;
+    background-color: #e9ecef; /* Container background */
+    border: 1px solid #ced4da;
+    padding: 15px;
+    gap: 20px;
+}
+
+.merged-center-group h3 {
+    margin: 0 0 15px 0;
+    text-align: center;
+    color: #495057;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.merged-top-item, .merged-bottom-item {
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    width: 100%;
+    flex-grow: 0;
+}
+
+.merged-item-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    gap: 10px;
+}
+
+/* 병합된 그룹 내의 아이템 스타일 조정 */
+.merged-center-group .summary-item {
+    min-width: 0;
+    padding: 10px;
+    margin-bottom: 0;
+    flex: 1 1 auto;
+    background-color: #f8f9fa;
+}
+
+.merged-center-group .summary-item p {
+    font-size: 15px;
+}
+.merged-center-group .summary-item span {
+    font-size: 24px;
+}
+
+/* 하단 병합 영역을 2행 3열 그리드로 설정 (CSS Grid 사용) */
+.merged-bottom-item .merged-item-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.merged-center-group .summary-item:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 /* 메뉴 및 컨트롤 */
@@ -150,15 +213,15 @@ body {
     border: 1px solid #adb5bd;
     border-radius: 6px;
     width: 300px;
-    font-size: 16px; /* 입력창 폰트 크기 증가 */
+    font-size: 16px;
 }
 
 /* 기본 버튼 스타일 */
 button, .file-btn {
-    padding: 12px 20px; /* 버튼 크기 증가 */
+    padding: 12px 20px;
     border: none;
     border-radius: 6px;
-    background-color: #007bff; /* 명확한 파란색 버튼 */
+    background-color: #007bff;
     color: white;
     cursor: pointer;
     font-size: 16px;
@@ -213,16 +276,16 @@ label[for="load-data-input"].btn-secondary:hover {
 
 /* 범례 및 기준 설정 */
 .legend {
-    display: flex; /* Flexbox 레이아웃 사용 */
-    justify-content: space-between; /* 양쪽 끝 정렬 */
-    align-items: center; /* 수직 중앙 정렬 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 15px;
     padding: 15px;
     background-color: #e9ecef;
     border-radius: 6px;
     font-size: 16px;
-    width: 100%; /* 너비를 100%로 설정 */
-    box-sizing: border-box; /* 패딩과 테두리를 너비에 포함 */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .legend-group-left {
@@ -289,7 +352,7 @@ label[for="load-data-input"].btn-secondary:hover {
 /* 테이블 */
 .order-list {
     overflow-y: auto;
-    max-height: 90vh; /* 테이블 높이 확보 */
+    max-height: 90vh;
     border: 1px solid #dee2e6;
     border-radius: 8px;
 }
@@ -346,9 +409,9 @@ tbody tr.urgency-critical {
     padding: 30px;
     border: 1px solid #888;
     width: 90%;
-    max-width: 550px; /* 모달 최대 너비 줄임 */
-    max-height: 80vh; /* 모달 최대 높이 설정 */
-    overflow-y: auto; /* 내용이 넘칠 경우 스크롤바 생성 */
+    max-width: 550px;
+    max-height: 80vh;
+    overflow-y: auto;
     border-radius: 8px;
     position: relative;
 }
@@ -489,7 +552,7 @@ th.col-group-end, td.col-group-end {
 
 /* 배송 관리 모달 */
 .modal-content.large {
-    max-width: 900px; /* 더 넓은 모달 */
+    max-width: 900px;
 }
 
 .shipping-management-body {
@@ -592,33 +655,29 @@ th.col-group-end, td.col-group-end {
 }
 
 .shipping-item.status-scheduled {
-    border-left-color: #007bff; /* 더 강한 파란색 */
-    background-color: #e7f3ff; /* 밝고 깨끗한 파란색 */
-    font-weight: 600; /* 전체 항목을 굵게 */
+    border-left-color: #007bff;
+    background-color: #e7f3ff;
+    font-weight: 600;
 }
 .shipping-item.status-scheduled span {
-    color: #0056b3; /* 텍스트를 위한 더 어두운 파란색 */
+    color: #0056b3;
 }
 
 .shipping-item.status-sent {
-    border-left-color: #20c997; /* 생생한 청록색/녹색 */
-    background-color: #e6fffa; /* 매우 밝은 청록색 */
-    font-weight: normal; /* 발송된 항목은 보통 굵기 유지 */
+    border-left-color: #20c997;
+    background-color: #e6fffa;
+    font-weight: normal;
     color: #555;
 }
 .shipping-item.status-sent span {
-    color: #087f5b; /* 텍스트를 위한 더 어두운 청록색 */
+    color: #087f5b;
 }
-.shipping-item.status-sent .shipping-item-count {
-    /* 수량 부분은 취소선 제거 */
-}
-
 
 .shipping-item.editing {
-    background-color: #fff3cd; /* 노란색 하이라이트 */
+    background-color: #fff3cd;
     border-left-color: #ffc107;
     font-weight: 600;
-    text-decoration: none; /* 수정 중일 때는 취소선 제거 */
+    text-decoration: none;
 }
 .shipping-item.editing span {
     text-decoration: none;
@@ -646,7 +705,7 @@ th.col-group-end, td.col-group-end {
 .shipping-visual-bar {
     display: flex;
     width: 100%;
-    height: 18px; /* 높이 살짝 줄임 */
+    height: 18px;
     border-radius: 4px;
     overflow: hidden;
     background-color: #e9ecef;
@@ -658,15 +717,15 @@ th.col-group-end, td.col-group-end {
 }
 
 .svb-unsent {
-    background-color: #6c757d; /* Gray for unsent */
+    background-color: #6c757d;
 }
 
 .svb-scheduled {
-    background-color: #007bff; /* Blue for scheduled */
+    background-color: #007bff;
 }
 
 .svb-sent {
-    background-color: #28a745; /* Green for sent */
+    background-color: #28a745;
 }
 
 .shipping-visual-summary {
@@ -686,4 +745,3 @@ th.col-group-end, td.col-group-end {
     color: #28a745;
     font-weight: 500;
 }
-
