@@ -53,46 +53,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const redThresholdLabel = document.getElementById('red-threshold-label-db');
 
     // 상태 관리 (기본값으로 초기화)
-    let orders = [];
-    let redThreshold = 7;
-    let viewMode = 'compact';
-    let prices = { sweet: 25000, daebong: 20000 };
-    let currentSort = { column: 'orderDate', direction: 'desc' };
-    let currentFilter = null; // New state variable for dashboard filtering
+    let appState = {
+        orders: [],
+        redThreshold: 7,
+        viewMode: 'compact',
+        prices: { sweet: 25000, daebong: 20000 },
+        currentSort: { column: 'orderDate', direction: 'desc' },
+        currentFilter: null,
+    };
     let tempShippingDetails = {}; // 배송관리 모달용 임시 데이터
     let editingShippingItem = null; // 배송관리 모달에서 수정중인 아이템 정보
 
-    // Helper function to check if an order is delayed
-    const isOrderDelayed = (order) => {
+    // 주문의 배송 상태(완료, 예정, 미발송)를 계산하는 헬퍼 함수
+    const getOrderShippingStats = (order) => {
         const sweetTotal = parseInt(order.sweetPersimmon) || 0;
         const daebongTotal = parseInt(order.daebongPersimmon) || 0;
         const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
-        let orderSentSweet = 0, orderSentDaebong = 0;
-        let orderScheduledSweet = 0, orderScheduledDaebong = 0;
 
+        let sentSweet = 0, scheduledSweet = 0;
         (details.sweetPersimmon || []).forEach(item => {
-            if (item.status === '발송완료') orderSentSweet += item.count;
-            else if (item.status === '발송예정') orderScheduledSweet += item.count;
+            if (item.status === '발송완료') sentSweet += item.count;
+            else if (item.status === '발송예정') scheduledSweet += item.count;
         });
-        (details.daebongPersimmon || []).forEach(item => {
-            if (item.status === '발송완료') orderSentDaebong += item.count;
-            else if (item.status === '발송예정') orderScheduledDaebong += item.count;
-        });
-        
-        const orderUnsentSweet = sweetTotal - orderSentSweet - orderScheduledSweet;
-        const orderUnsentDaebong = daebongTotal - orderSentDaebong - orderScheduledDaebong;
 
-        if (orderUnsentSweet <= 0 && orderUnsentDaebong <= 0) {
+        let sentDaebong = 0, scheduledDaebong = 0;
+        (details.daebongPersimmon || []).forEach(item => {
+            if (item.status === '발송완료') sentDaebong += item.count;
+            else if (item.status === '발송예정') scheduledDaebong += item.count;
+        });
+
+        const unsentSweet = sweetTotal - sentSweet - scheduledSweet;
+        const unsentDaebong = daebongTotal - sentDaebong - scheduledDaebong;
+
+        return {
+            sentSweet, scheduledSweet, unsentSweet,
+            sentDaebong, scheduledDaebong, unsentDaebong,
+            totalSweet: sweetTotal,
+            totalDaebong: daebongTotal
+        };
+    };
+
+    // Helper function to check if an order is delayed
+    const isOrderDelayed = (order, today) => {
+        const stats = getOrderShippingStats(order);
+        if (stats.unsentSweet <= 0 && stats.unsentDaebong <= 0) {
             return false; // Not delayed if everything is sent or scheduled
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
         const orderDate = new Date(order.orderDate + 'T00:00:00');
         const diffTime = today.getTime() - orderDate.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Use floor for full days
 
-        return diffDays >= redThreshold;
+        return diffDays >= appState.redThreshold;
     };
 
     // UI 새로고침
@@ -100,13 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable(getFilteredAndSortedOrders());
         updateDashboard();
         updateViewModeUI();
-        redThresholdInput.value = redThreshold;
-        if(redThresholdLabel) redThresholdLabel.textContent = redThreshold;
+        redThresholdInput.value = appState.redThreshold;
+        if(redThresholdLabel) redThresholdLabel.textContent = appState.redThreshold;
     };
 
     const updateViewModeUI = () => {
-        orderTable.className = 'view-' + viewMode;
-        toggleViewBtn.textContent = viewMode === 'compact' ? '상세 보기' : '간단히 보기';
+        orderTable.className = 'view-' + appState.viewMode;
+        toggleViewBtn.textContent = appState.viewMode === 'compact' ? '상세 보기' : '간단히 보기';
     };
 
     // 대시보드 업데이트
@@ -118,73 +130,70 @@ document.addEventListener('DOMContentLoaded', () => {
         let unsentOrders = 0, totalUnsentSweet = 0, totalUnsentDaebong = 0;
         let scheduledOrders = 0, totalScheduledSweet = 0, totalScheduledDaebong = 0;
         let delayedOrders = 0, delayedUnsentSweet = 0, delayedUnsentDaebong = 0;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        orders.forEach(order => {
+        appState.orders.forEach(order => {
             totalOrders++;
+            const stats = getOrderShippingStats(order);
 
-            const sweetTotal = parseInt(order.sweetPersimmon) || 0;
-            const daebongTotal = parseInt(order.daebongPersimmon) || 0;
+            totalSweetPersimmons += stats.totalSweet;
+            totalDaebongPersimmons += stats.totalDaebong;
 
-            totalSweetPersimmons += sweetTotal;
-            totalDaebongPersimmons += daebongTotal;
+            totalSentSweet += stats.sentSweet;
+            totalSentDaebong += stats.sentDaebong;
+            totalScheduledSweet += stats.scheduledSweet;
+            totalScheduledDaebong += stats.scheduledDaebong;
+            totalUnsentSweet += stats.unsentSweet;
+            totalUnsentDaebong += stats.unsentDaebong;
 
-            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
-            let orderSentSweet = 0, orderSentDaebong = 0;
-            let orderScheduledSweet = 0, orderScheduledDaebong = 0;
-
-            (details.sweetPersimmon || []).forEach(item => {
-                if (item.status === '발송완료') orderSentSweet += item.count;
-                else if (item.status === '발송예정') orderScheduledSweet += item.count;
-            });
-            (details.daebongPersimmon || []).forEach(item => {
-                if (item.status === '발송완료') orderSentDaebong += item.count;
-                else if (item.status === '발송예정') orderScheduledDaebong += item.count;
-            });
-            
-            const orderUnsentSweet = sweetTotal - orderSentSweet - orderScheduledSweet;
-            const orderUnsentDaebong = daebongTotal - orderSentDaebong - orderScheduledDaebong;
-
-            totalSentSweet += orderSentSweet;
-            totalSentDaebong += orderSentDaebong;
-            totalScheduledSweet += orderScheduledSweet;
-            totalScheduledDaebong += orderScheduledDaebong;
-            totalUnsentSweet += orderUnsentSweet;
-            totalUnsentDaebong += orderUnsentDaebong;
-
-            if ((orderSentSweet + orderSentDaebong) > 0) {
+            if ((stats.sentSweet + stats.sentDaebong) > 0) {
                 sentOrders++;
             }
-            if (orderUnsentSweet > 0 || orderUnsentDaebong > 0) {
+            if (stats.unsentSweet > 0 || stats.unsentDaebong > 0) {
                 unsentOrders++;
             }
-            if (orderScheduledSweet > 0 || orderScheduledDaebong > 0) {
+            if (stats.scheduledSweet > 0 || stats.scheduledDaebong > 0) {
                 scheduledOrders++;
             }
             
-            if (isOrderDelayed(order)) {
+            if (isOrderDelayed(order, today)) {
                 delayedOrders++;
-                delayedUnsentSweet += orderUnsentSweet;
-                delayedUnsentDaebong += orderUnsentDaebong;
+                delayedUnsentSweet += stats.unsentSweet;
+                delayedUnsentDaebong += stats.unsentDaebong;
             }
         });
 
+        // 총 주문 그룹
         document.getElementById('db-total-orders').textContent = totalOrders;
         document.getElementById('db-total-sweet').textContent = totalSweetPersimmons;
         document.getElementById('db-total-daebong').textContent = totalDaebongPersimmons;
+        
+        // 주문 상태별 현황
         document.getElementById('db-sent-orders').textContent = sentOrders;
-        document.getElementById('db-sent-sweet').textContent = totalSentSweet;
-        document.getElementById('db-sent-daebong').textContent = totalSentDaebong;
         document.getElementById('db-unsent-orders').textContent = unsentOrders;
-        document.getElementById('db-unsent-sweet').textContent = totalUnsentSweet;
-        document.getElementById('db-unsent-daebong').textContent = totalUnsentDaebong;
         document.getElementById('db-scheduled-orders').textContent = scheduledOrders;
+
+        // 상태별 박스 현황 그리드
+        document.getElementById('db-total-sent-boxes').textContent = totalSentSweet + totalSentDaebong;
+        document.getElementById('db-total-unsent-boxes').textContent = totalUnsentSweet + totalUnsentDaebong;
+        document.getElementById('db-total-scheduled-boxes').textContent = totalScheduledSweet + totalScheduledDaebong;
+        
+        document.getElementById('db-sent-sweet').textContent = totalSentSweet;
+        document.getElementById('db-unsent-sweet').textContent = totalUnsentSweet;
         document.getElementById('db-scheduled-sweet').textContent = totalScheduledSweet;
+
+        document.getElementById('db-sent-daebong').textContent = totalSentDaebong;
+        document.getElementById('db-unsent-daebong').textContent = totalUnsentDaebong;
         document.getElementById('db-scheduled-daebong').textContent = totalScheduledDaebong;
+        
+        // 지연 주문 현황
         document.getElementById('db-delayed-orders').textContent = delayedOrders;
         document.getElementById('db-delayed-sweet').textContent = delayedUnsentSweet;
         document.getElementById('db-delayed-daebong').textContent = delayedUnsentDaebong;
         
-        if (redThresholdLabel) redThresholdLabel.textContent = redThreshold;
+        if (redThresholdLabel) redThresholdLabel.textContent = appState.redThreshold;
     };
 
     // 날짜 및 숫자 형식 변환
@@ -201,28 +210,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const createShippingStatusVisual = (order) => {
-        const sweetTotal = parseInt(order.sweetPersimmon) || 0;
-        const daebongTotal = parseInt(order.daebongPersimmon) || 0;
-        const totalBoxes = sweetTotal + daebongTotal;
+        const stats = getOrderShippingStats(order);
+        const totalBoxes = stats.totalSweet + stats.totalDaebong;
 
         if (totalBoxes === 0) {
             return '<span>-</span>';
         }
 
-        const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
-        let scheduledCount = 0;
-        let sentCount = 0;
-
-        (details.sweetPersimmon || []).forEach(item => {
-            if (item.status === '발송예정') scheduledCount += item.count;
-            else if (item.status === '발송완료') sentCount += item.count;
-        });
-        (details.daebongPersimmon || []).forEach(item => {
-            if (item.status === '발송예정') scheduledCount += item.count;
-            else if (item.status === '발송완료') sentCount += item.count;
-        });
-
-        const unsentCount = totalBoxes - scheduledCount - sentCount;
+        const sentCount = stats.sentSweet + stats.sentDaebong;
+        const scheduledCount = stats.scheduledSweet + stats.scheduledDaebong;
+        const unsentCount = totalBoxes - sentCount - scheduledCount;
 
         const unsentPercent = totalBoxes > 0 ? (unsentCount / totalBoxes) * 100 : 0;
         const scheduledPercent = totalBoxes > 0 ? (scheduledCount / totalBoxes) * 100 : 0;
@@ -258,12 +255,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const isCompact = viewMode === 'compact';
+        const isCompact = appState.viewMode === 'compact';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         ordersToRender.forEach((order, index) => {
             const row = document.createElement('tr');
             
-            if (isOrderDelayed(order)) {
+            if (isOrderDelayed(order, today)) {
                 row.classList.add('urgency-critical');
             }
 
@@ -280,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const receiverPhoneHTML = `<td class="col-detail">${order.receiverPhone}</td>`;
             const receiverAddressHTML = `<td class="col-detail${isCompact ? '' : ' col-group-end'}">${order.receiverAddress}</td>`;
 
-            const totalPrice = (parseInt(order.sweetPersimmon) || 0) * prices.sweet + (parseInt(order.daebongPersimmon) || 0) * prices.daebong;
+            const totalPrice = (parseInt(order.sweetPersimmon) || 0) * appState.prices.sweet + (parseInt(order.daebongPersimmon) || 0) * appState.prices.daebong;
 
             row.innerHTML = `
                 <td>${index + 1}</td>
@@ -319,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 데이터 필터링 및 정렬
     const getFilteredAndSortedOrders = () => {
-        let processedOrders = [...orders];
+        let processedOrders = [...appState.orders];
         
         const searchTerm = searchInput.value.toLowerCase();
         if (searchTerm) {
@@ -331,56 +330,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let filteredByDashboard = processedOrders;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        if (currentFilter) {
+        if (appState.currentFilter) {
             filteredByDashboard = processedOrders.filter(order => {
-                const sweetTotal = parseInt(order.sweetPersimmon) || 0;
-                const daebongTotal = parseInt(order.daebongPersimmon) || 0;
-                const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
+                const stats = getOrderShippingStats(order);
+                const isDelayed = isOrderDelayed(order, today);
 
-                let orderSentSweet = 0, orderSentDaebong = 0;
-                let orderScheduledSweet = 0, orderScheduledDaebong = 0;
-
-                (details.sweetPersimmon || []).forEach(item => {
-                    if (item.status === '발송완료') orderSentSweet += item.count;
-                    else if (item.status === '발송예정') orderScheduledSweet += item.count;
-                });
-                (details.daebongPersimmon || []).forEach(item => {
-                    if (item.status === '발송완료') orderSentDaebong += item.count;
-                    else if (item.status === '발송예정') orderScheduledDaebong += item.count;
-                });
-                
-                const orderUnsentSweet = sweetTotal - orderSentSweet - orderScheduledSweet;
-                const orderUnsentDaebong = daebongTotal - orderSentDaebong - orderScheduledDaebong;
-                const isDelayed = isOrderDelayed(order);
-
-                switch (currentFilter) {
+                switch (appState.currentFilter) {
                     case 'total-orders': return true;
-                    case 'db-sent-orders': return (orderSentSweet + orderSentDaebong) > 0;
-                    case 'db-unsent-orders': return orderUnsentSweet > 0 || orderUnsentDaebong > 0;
-                    case 'db-scheduled-orders': return orderScheduledSweet > 0 || orderScheduledDaebong > 0;
-                    case 'db-delayed-orders': return isDelayed;
-                    case 'db-total-sweet': return sweetTotal > 0;
-                    case 'db-total-daebong': return daebongTotal > 0;
-                    case 'db-sent-sweet': return orderSentSweet > 0;
-                    case 'db-sent-daebong': return orderSentDaebong > 0;
-                    case 'db-unsent-sweet': return orderUnsentSweet > 0;
-                    case 'db-unsent-daebong': return orderUnsentDaebong > 0;
-                    case 'db-scheduled-sweet': return orderScheduledSweet > 0;
-                    case 'db-scheduled-daebong': return orderScheduledDaebong > 0;
-                    case 'db-delayed-sweet': return isDelayed && orderUnsentSweet > 0;
-                    case 'db-delayed-daebong': return isDelayed && orderUnsentDaebong > 0;
+                    case 'sent-orders': return (stats.sentSweet + stats.sentDaebong) > 0;
+                    case 'unsent-orders': return stats.unsentSweet > 0 || stats.unsentDaebong > 0;
+                    case 'scheduled-orders': return stats.scheduledSweet > 0 || stats.scheduledDaebong > 0;
+                    case 'delayed-orders': return isDelayed;
+                    case 'total-sweet': return stats.totalSweet > 0;
+                    case 'total-daebong': return stats.totalDaebong > 0;
+                    case 'sent-sweet': return stats.sentSweet > 0;
+                    case 'sent-daebong': return stats.sentDaebong > 0;
+                    case 'unsent-sweet': return stats.unsentSweet > 0;
+                    case 'unsent-daebong': return stats.unsentDaebong > 0;
+                    case 'scheduled-sweet': return stats.scheduledSweet > 0;
+                    case 'scheduled-daebong': return stats.scheduledDaebong > 0;
+                    case 'delayed-sweet': return isDelayed && stats.unsentSweet > 0;
+                    case 'delayed-daebong': return isDelayed && stats.unsentDaebong > 0;
                     default: return true;
                 }
             });
         }
 
         filteredByDashboard.forEach(order => {
-            order.totalPrice = (parseInt(order.sweetPersimmon) || 0) * prices.sweet + (parseInt(order.daebongPersimmon) || 0) * prices.daebong;
+            order.totalPrice = (parseInt(order.sweetPersimmon) || 0) * appState.prices.sweet + (parseInt(order.daebongPersimmon) || 0) * appState.prices.daebong;
         });
 
         filteredByDashboard.sort((a, b) => {
-            const column = currentSort.column;
+            const column = appState.currentSort.column;
             let valA = a[column];
             let valB = b[column];
 
@@ -399,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let comparison = 0;
             if (valA > valB) comparison = 1; else if (valA < valB) comparison = -1;
-            return currentSort.direction === 'asc' ? comparison : -comparison;
+            return appState.currentSort.direction === 'asc' ? comparison : -comparison;
         });
 
         return filteredByDashboard;
@@ -409,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openOrderModal = (orderId = null) => {
         orderForm.reset();
         if (orderId) {
-            const order = orders.find(o => o.id == orderId);
+            const order = appState.orders.find(o => o.id == orderId);
             if(order){
                 formTitle.textContent = '주문 수정';
                 document.getElementById('order-id').value = order.id;
@@ -437,8 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeOrderModal = () => { orderModal.style.display = 'none'; };
 
     const openPriceModal = () => {
-        sweetPriceInput.value = prices.sweet;
-        daebongPriceInput.value = prices.daebong;
+        sweetPriceInput.value = appState.prices.sweet;
+        daebongPriceInput.value = appState.prices.daebong;
         priceModal.style.display = 'flex';
     };
     const closePriceModal = () => { priceModal.style.display = 'none'; };
@@ -451,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 배송 관리 모달
     const openShippingManagementModal = (orderId) => {
-        const order = orders.find(o => o.id == orderId);
+        const order = appState.orders.find(o => o.id == orderId);
         if (!order) return;
 
         shippingOrderIdInput.value = orderId;
@@ -550,50 +534,35 @@ document.addEventListener('DOMContentLoaded', () => {
             unshipped: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
         };
 
-        orders.forEach(order => {
-            const orderSweetTotal = parseInt(order.sweetPersimmon) || 0;
-            const orderDaebongTotal = parseInt(order.daebongPersimmon) || 0;
-
-            const sweetValue = orderSweetTotal * prices.sweet;
-            const daebongValue = orderDaebongTotal * prices.daebong;
+        appState.orders.forEach(order => {
+            const stats = getOrderShippingStats(order);
+            const sweetValue = stats.totalSweet * appState.prices.sweet;
+            const daebongValue = stats.totalDaebong * appState.prices.daebong;
 
             if (order.paymentStatus) {
                 results.paid.sweet += sweetValue;
                 results.paid.daebong += daebongValue;
-                results.paid.sweetCount += orderSweetTotal;
-                results.paid.daebongCount += orderDaebongTotal;
+                results.paid.sweetCount += stats.totalSweet;
+                results.paid.daebongCount += stats.totalDaebong;
             } else {
                 results.unpaid.sweet += sweetValue;
                 results.unpaid.daebong += daebongValue;
-                results.unpaid.sweetCount += orderSweetTotal;
-                results.unpaid.daebongCount += orderDaebongTotal;
+                results.unpaid.sweetCount += stats.totalSweet;
+                results.unpaid.daebongCount += stats.totalDaebong;
             }
 
-            const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
-            let shippedSweet = 0, shippedDaebong = 0;
-            let scheduledSweet = 0, scheduledDaebong = 0;
+            results.shipped.sweetCount += stats.sentSweet;
+            results.shipped.daebongCount += stats.sentDaebong;
+            results.shipped.sweet += stats.sentSweet * appState.prices.sweet;
+            results.shipped.daebong += stats.sentDaebong * appState.prices.daebong;
 
-            (details.sweetPersimmon || []).forEach(item => {
-                if (item.status === '발송완료') shippedSweet += item.count;
-                else if (item.status === '발송예정') scheduledSweet += item.count;
-            });
-            (details.daebongPersimmon || []).forEach(item => {
-                if (item.status === '발송완료') shippedDaebong += item.count;
-                else if (item.status === '발송예정') scheduledDaebong += item.count;
-            });
+            const unshippedSweet = stats.unsentSweet + stats.scheduledSweet;
+            const unshippedDaebong = stats.unsentDaebong + stats.scheduledDaebong;
 
-            const unsentSweet = orderSweetTotal - shippedSweet - scheduledSweet;
-            const unsentDaebong = orderDaebongTotal - shippedDaebong - scheduledDaebong;
-
-            results.shipped.sweetCount += shippedSweet;
-            results.shipped.daebongCount += shippedDaebong;
-            results.shipped.sweet += shippedSweet * prices.sweet;
-            results.shipped.daebong += shippedDaebong * prices.daebong;
-
-            results.unshipped.sweetCount += (unsentSweet + scheduledSweet);
-            results.unshipped.daebongCount += (unsentDaebong + scheduledDaebong);
-            results.unshipped.sweet += (unsentSweet + scheduledSweet) * prices.sweet;
-            results.unshipped.daebong += (unsentDaebong + scheduledDaebong) * prices.daebong;
+            results.unshipped.sweetCount += unshippedSweet;
+            results.unshipped.daebongCount += unshippedDaebong;
+            results.unshipped.sweet += unshippedSweet * appState.prices.sweet;
+            results.unshipped.daebong += unshippedDaebong * appState.prices.daebong;
         });
 
         results.paid.total = results.paid.sweet + results.paid.daebong;
@@ -679,13 +648,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const saveStateToFile = () => {
-        const appState = {
-            orders: orders,
-            prices: prices,
-            redThreshold: redThreshold,
-            viewMode: viewMode
+        const stateToSave = {
+            orders: appState.orders,
+            prices: appState.prices,
+            redThreshold: appState.redThreshold,
+            viewMode: appState.viewMode
         };
-        const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(stateToSave, null, 2)], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'gam_data.json';
@@ -699,13 +668,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
-                const appState = JSON.parse(event.target.result);
-                orders = appState.orders || [];
-                prices = appState.prices || { sweet: 25000, daebong: 20000 };
-                redThreshold = appState.redThreshold || 7;
-                viewMode = appState.viewMode || 'compact';
+                const loadedState = JSON.parse(event.target.result);
+                appState.orders = loadedState.orders || [];
+                appState.prices = loadedState.prices || { sweet: 25000, daebong: 20000 };
+                appState.redThreshold = loadedState.redThreshold || 7;
+                appState.viewMode = loadedState.viewMode || 'compact';
                 
-                orders.forEach(order => {
+                appState.orders.forEach(order => {
                     order.shippingDetails = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
                 });
 
@@ -739,38 +708,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     toggleViewBtn.addEventListener('click', () => {
-        viewMode = viewMode === 'compact' ? 'expanded' : 'compact';
+        appState.viewMode = appState.viewMode === 'compact' ? 'expanded' : 'compact';
         refreshUI();
         saveStateToLocalStorage();
     });
 
     resetViewBtn.addEventListener('click', () => {
         searchInput.value = '';
-        currentFilter = null;
+        appState.currentFilter = null;
         document.querySelectorAll('.summary-item').forEach(item => item.classList.remove('active'));
         refreshUI();
         saveStateToLocalStorage();
     });
 
     dashboard.addEventListener('click', (e) => {
-        const summaryItem = e.target.closest('.summary-item');
-        if (summaryItem) {
-            const idSpan = summaryItem.querySelector('span[id]');
-            if (!idSpan) return;
-
-            const filterId = idSpan.id;
-            if (currentFilter === filterId) {
-                currentFilter = null;
+        const filterTarget = e.target.closest('[data-filter]');
+        if (filterTarget) {
+            const filterId = filterTarget.dataset.filter;
+            
+            if (appState.currentFilter === filterId) {
+                appState.currentFilter = null; // Toggle off if clicking the same filter
             } else {
-                currentFilter = filterId;
+                appState.currentFilter = filterId;
             }
             
-            document.querySelectorAll('.summary-item').forEach(item => item.classList.remove('active'));
-            if (currentFilter) {
-                const activeSpan = document.getElementById(currentFilter);
-                if (activeSpan) {
-                    activeSpan.closest('.summary-item').classList.add('active');
-                }
+            document.querySelectorAll('[data-filter]').forEach(item => item.classList.remove('active'));
+            
+            if (appState.currentFilter) {
+                // Highlight all elements that match the current filter
+                document.querySelectorAll(`[data-filter="${appState.currentFilter}"]`).forEach(item => {
+                    item.classList.add('active');
+                });
             }
             refreshUI();
             saveStateToLocalStorage();
@@ -795,13 +763,11 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentStatus: document.getElementById('payment-status').checked
         };
         if (id) {
-            const index = orders.findIndex(o => o.id == id);
-            if(index !== -1) orders[index] = { ...orders[index], ...orderData };
+            const index = appState.orders.findIndex(o => o.id == id);
+            if(index !== -1) appState.orders[index] = { ...appState.orders[index], ...orderData };
         } else {
-            orders.push({ 
+            appState.orders.push({ 
                 id: Date.now(), 
-                status: '미발송', 
-                shippingDate: null, 
                 shippingDetails: { sweetPersimmon: [], daebongPersimmon: [] },
                 ...orderData 
             });
@@ -813,8 +779,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     priceSettingsForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        prices.sweet = parseInt(sweetPriceInput.value) || 0;
-        prices.daebong = parseInt(daebongPriceInput.value) || 0;
+        appState.prices.sweet = parseInt(sweetPriceInput.value) || 0;
+        appState.prices.daebong = parseInt(daebongPriceInput.value) || 0;
         refreshUI();
         closePriceModal();
         saveStateToLocalStorage();
@@ -830,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openOrderModal(parseInt(id));
         } else if (target.classList.contains('delete-btn')) {
             if (confirm('정말로 이 주문을 삭제하시겠습니까?')) {
-                orders = orders.filter(o => o.id != id);
+                appState.orders = appState.orders.filter(o => o.id != id);
                 refreshUI();
                 saveStateToLocalStorage();
             }
@@ -840,9 +806,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellId = targetCell.dataset.id;
 
             if (targetCell.classList.contains('payment-status-cell')) {
-                const index = orders.findIndex(o => o.id == cellId);
+                const index = appState.orders.findIndex(o => o.id == cellId);
                 if (index !== -1) {
-                    orders[index].paymentStatus = !orders[index].paymentStatus;
+                    appState.orders[index].paymentStatus = !appState.orders[index].paymentStatus;
                     refreshUI();
                     saveStateToLocalStorage();
                 }
@@ -872,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const orderId = shippingOrderIdInput.value;
-            const order = orders.find(o => o.id == orderId);
+            const order = appState.orders.find(o => o.id == orderId);
             const total = parseInt(order[type]) || 0;
             
             let currentTotalInDetails = 0;
@@ -911,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const setupShippingListEventListeners = (listElement) => {
         listElement.addEventListener('click', (e) => {
             const orderId = shippingOrderIdInput.value;
-            const order = orders.find(o => o.id == orderId);
+            const order = appState.orders.find(o => o.id == orderId);
             const target = e.target;
 
             if (target.classList.contains('shipping-delete-btn')) {
@@ -952,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     shippingModalSaveBtn.addEventListener('click', () => {
         const orderId = shippingOrderIdInput.value;
-        const index = orders.findIndex(o => o.id == orderId);
+        const index = appState.orders.findIndex(o => o.id == orderId);
         if (index !== -1) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -983,38 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tempShippingDetails.sweetPersimmon.sort((a, b) => new Date(a.date) - new Date(b.date));
             tempShippingDetails.daebongPersimmon.sort((a, b) => new Date(a.date) - new Date(b.date));
-            orders[index].shippingDetails = JSON.parse(JSON.stringify(tempShippingDetails));
-
-            const order = orders[index];
-            const sweetTotal = parseInt(order.sweetPersimmon) || 0;
-            const daebongTotal = parseInt(order.daebongPersimmon) || 0;
-            const totalBoxes = sweetTotal + daebongTotal;
-
-            let sentCount = 0;
-            let scheduledCount = 0;
-            let firstShippingDate = null;
-
-            const allItems = [
-                ...(order.shippingDetails.sweetPersimmon || []),
-                ...(order.shippingDetails.daebongPersimmon || [])
-            ];
-
-            allItems.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            allItems.forEach(item => {
-                if (item.status === '발송완료') sentCount += item.count;
-                if (item.status === '발송예정') scheduledCount += item.count;
-                if (!firstShippingDate) firstShippingDate = item.date;
-            });
-
-            if (totalBoxes > 0 && sentCount === totalBoxes) {
-                order.status = '발송완료';
-            } else if (scheduledCount > 0 || sentCount > 0) {
-                order.status = '발송예정';
-            } else {
-                order.status = '미발송';
-            }
-            order.shippingDate = firstShippingDate;
+            appState.orders[index].shippingDetails = JSON.parse(JSON.stringify(tempShippingDetails));
         }
         
         closeShippingManagementModal();
@@ -1028,18 +963,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('th[data-sort]').forEach(header => {
         header.addEventListener('click', () => {
             const column = header.dataset.sort;
-            if (currentSort.column === column) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            if (appState.currentSort.column === column) {
+                appState.currentSort.direction = appState.currentSort.direction === 'asc' ? 'desc' : 'asc';
             } else {
-                currentSort.column = column;
-                currentSort.direction = 'desc';
+                appState.currentSort.column = column;
+                appState.currentSort.direction = 'desc';
             }
             refreshUI();
         });
     });
 
     redThresholdInput.addEventListener('change', () => {
-        redThreshold = parseInt(redThresholdInput.value) || 7;
+        appState.redThreshold = parseInt(redThresholdInput.value) || 7;
         refreshUI();
         saveStateToLocalStorage();
     });
@@ -1052,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     
 
-            orders.forEach(order => {
+            appState.orders.forEach(order => {
 
                 const details = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
 
@@ -1177,12 +1112,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     
     const saveStateToLocalStorage = () => {
-        const appState = {
-            orders: orders,
-            prices: prices,
-            redThreshold: redThreshold,
-            viewMode: viewMode
-        };
         localStorage.setItem('gamAppState', JSON.stringify(appState));
     };
 
@@ -1190,27 +1119,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedState = localStorage.getItem('gamAppState');
         if (savedState) {
             try {
-                const appState = JSON.parse(savedState);
-                orders = appState.orders || [];
-                prices = appState.prices || { sweet: 25000, daebong: 20000 };
-                redThreshold = appState.redThreshold || 7;
-                viewMode = appState.viewMode || 'compact';
-                currentSort = appState.currentSort || { column: 'orderDate', direction: 'desc' };
-                currentFilter = appState.currentFilter || null;
+                const loadedState = JSON.parse(savedState);
+                appState.orders = loadedState.orders || [];
+                appState.prices = loadedState.prices || { sweet: 25000, daebong: 20000 };
+                appState.redThreshold = loadedState.redThreshold || 7;
+                appState.viewMode = loadedState.viewMode || 'compact';
+                appState.currentSort = loadedState.currentSort || { column: 'orderDate', direction: 'desc' };
+                appState.currentFilter = loadedState.currentFilter || null;
 
 
-                orders.forEach(order => {
+                appState.orders.forEach(order => {
                     order.shippingDetails = order.shippingDetails || { sweetPersimmon: [], daebongPersimmon: [] };
                 });
 
             } catch (error) {
                 console.error("Failed to parse app state from local storage:", error);
-                orders = [];
-                redThreshold = 7;
-                viewMode = 'compact';
-                prices = { sweet: 25000, daebong: 20000 };
-                currentSort = { column: 'orderDate', direction: 'desc' };
-                currentFilter = null;
+                // Reset to default state if parsing fails
+                appState.orders = [];
+                appState.redThreshold = 7;
+                appState.viewMode = 'compact';
+                appState.prices = { sweet: 25000, daebong: 20000 };
+                appState.currentSort = { column: 'orderDate', direction: 'desc' };
+                appState.currentFilter = null;
             }
         }
     };
@@ -1219,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        orders.forEach(order => {
+        appState.orders.forEach(order => {
             if (!order.shippingDetails) return;
 
             ['sweetPersimmon', 'daebongPersimmon'].forEach(type => {
@@ -1252,9 +1182,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadStateFromLocalStorage();
         updateScheduledToSent();
         refreshUI();
-        if (currentFilter) {
+        if (appState.currentFilter) {
             document.querySelectorAll('.summary-item').forEach(item => item.classList.remove('active'));
-            const activeSpan = document.getElementById(currentFilter);
+            const activeSpan = document.getElementById(appState.currentFilter);
             if (activeSpan) {
                 activeSpan.closest('.summary-item').classList.add('active');
             }

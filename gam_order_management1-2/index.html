@@ -16,83 +16,100 @@
         <div id="dashboard" class="dashboard">
             <!-- 총 주문 -->
             <div class="summary-group total-orders-group">
-                <div class="summary-item total-orders">
+                <div class="summary-item total-orders" data-filter="total-orders">
                     <p>총 주문건수</p>
-                    <span id="db-total-orders">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-total-orders">0</span><span class="unit">건</span>
+                    </div>
                 </div>
-                <div class="summary-item total-orders">
+                <div class="summary-item total-orders" data-filter="total-sweet">
                     <p>총 단감</p>
-                    <span id="db-total-sweet">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-total-sweet">0</span><span class="unit">박스</span>
+                    </div>
                 </div>
-                <div class="summary-item total-orders">
+                <div class="summary-item total-orders" data-filter="total-daebong">
                     <p>총 대봉</p>
-                    <span id="db-total-daebong">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-total-daebong">0</span><span class="unit">박스</span>
+                    </div>
                 </div>
             </div>
             <!-- 발송 완료, 미발송, 발송 예약 그룹을 합친 새로운 그룹 -->
             <div class="summary-group merged-center-group">
-                <!-- 상단 병합 영역 -->
+                <!-- 상단 병합 영역: 주문 상태별 현황 -->
                 <div class="summary-item merged-top-item">
                     <h3>주문 상태별 현황</h3>
                     <div class="merged-item-container">
-                        <div class="summary-item item-sent">
+                        <div class="summary-item item-sent" data-filter="sent-orders">
                             <p>발송완료 주문</p>
-                            <span id="db-sent-orders">0</span>
+                            <div class="value-unit-container">
+                                <span id="db-sent-orders">0</span><span class="unit">건</span>
+                            </div>
                         </div>
-                        <div class="summary-item item-unsent">
+                        <div class="summary-item item-unsent" data-filter="unsent-orders">
                             <p>미발송 주문</p>
-                            <span id="db-unsent-orders">0</span>
+                            <div class="value-unit-container">
+                                <span id="db-unsent-orders">0</span><span class="unit">건</span>
+                            </div>
                         </div>
-                        <div class="summary-item item-scheduled">
+                        <div class="summary-item item-scheduled" data-filter="scheduled-orders">
                             <p>발송예약 주문</p>
-                            <span id="db-scheduled-orders">0</span>
+                            <div class="value-unit-container">
+                                <span id="db-scheduled-orders">0</span><span class="unit">건</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- 하단 병합 영역 -->
+                <!-- 하단 병합 영역: 박스 현황 -->
                 <div class="summary-item merged-bottom-item">
-                    <h3>품목별 발송 현황</h3>
-                    <div class="merged-item-container">
-                        <div class="summary-item item-sent">
-                            <p>발송완료 단감</p>
-                            <span id="db-sent-sweet">0</span>
-                        </div>
-                        <div class="summary-item item-unsent">
-                            <p>미발송 단감</p>
-                            <span id="db-unsent-sweet">0</span>
-                        </div>
-                        <div class="summary-item item-scheduled">
-                            <p>발송예약 단감</p>
-                            <span id="db-scheduled-sweet">0</span>
-                        </div>
-                        <div class="summary-item item-sent">
-                            <p>발송완료 대봉</p>
-                            <span id="db-sent-daebong">0</span>
-                        </div>
-                        <div class="summary-item item-unsent">
-                            <p>미발송 대봉</p>
-                            <span id="db-unsent-daebong">0</span>
-                        </div>
-                        <div class="summary-item item-scheduled">
-                            <p>발송예약 대봉</p>
-                            <span id="db-scheduled-daebong">0</span>
-                        </div>
+                    <h3>상태별 박스 현황</h3>
+                    <div class="box-status-grid">
+                        <!-- Headers -->
+                        <div class="grid-header"></div>
+                        <div class="grid-header">발송완료</div>
+                        <div class="grid-header">미발송</div>
+                        <div class="grid-header">발송예약</div>
+
+                        <!-- Total Boxes Row -->
+                        <div class="grid-row-header">총 박스</div>
+                        <div class="grid-cell" data-filter="sent-orders"><span id="db-total-sent-boxes">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="unsent-orders"><span id="db-total-unsent-boxes">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="scheduled-orders"><span id="db-total-scheduled-boxes">0</span><span class="unit">박스</span></div>
+
+                        <!-- Sweet Persimmon Row -->
+                        <div class="grid-row-header">단감</div>
+                        <div class="grid-cell" data-filter="sent-sweet"><span id="db-sent-sweet">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="unsent-sweet"><span id="db-unsent-sweet">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="scheduled-sweet"><span id="db-scheduled-sweet">0</span><span class="unit">박스</span></div>
+
+                        <!-- Daebong Row -->
+                        <div class="grid-row-header">대봉</div>
+                        <div class="grid-cell" data-filter="sent-daebong"><span id="db-sent-daebong">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="unsent-daebong"><span id="db-unsent-daebong">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="scheduled-daebong"><span id="db-scheduled-daebong">0</span><span class="unit">박스</span></div>
                     </div>
                 </div>
             </div>
             <!-- 지연 -->
             <div class="summary-group delayed-summary">
-                <div class="summary-item delayed-summary">
+                <div class="summary-item delayed-summary" data-filter="delayed-orders">
                     <p><span id="red-threshold-label-db">7</span>일 이상 지연 주문</p>
-                    <span id="db-delayed-orders">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-delayed-orders">0</span><span class="unit">건</span>
+                    </div>
                 </div>
-                <div class="summary-item delayed-summary">
+                <div class="summary-item delayed-summary" data-filter="delayed-sweet">
                     <p>지연 미발송 단감</p>
-                    <span id="db-delayed-sweet">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-delayed-sweet">0</span><span class="unit">박스</span>
+                    </div>
                 </div>
-                <div class="summary-item delayed-summary">
+                <div class="summary-item delayed-summary" data-filter="delayed-daebong">
                     <p>지연 미발송 대봉</p>
-                    <span id="db-delayed-daebong">0</span>
+                    <div class="value-unit-container">
+                        <span id="db-delayed-daebong">0</span><span class="unit">박스</span>
+                    </div>
                 </div>
             </div>
         </div>
