@@ -41,10 +41,10 @@
                 <div class="summary-item merged-top-item">
                     <h3>주문 상태별 현황</h3>
                     <div class="merged-item-container">
-                        <div class="summary-item item-sent" data-filter="sent-orders">
-                            <p>발송완료 주문</p>
+                        <div class="summary-item item-sent" data-filter="completed-orders">
+                            <p>처리완료 주문</p>
                             <div class="value-unit-container">
-                                <span id="db-sent-orders">0</span><span class="unit">건</span>
+                                <span id="db-completed-orders">0</span><span class="unit">건</span>
                             </div>
                         </div>
                         <div class="summary-item item-unsent" data-filter="unsent-orders">
@@ -73,21 +73,21 @@
 
                         <!-- Total Boxes Row -->
                         <div class="grid-row-header">총 박스</div>
-                        <div class="grid-cell" data-filter="sent-orders"><span id="db-total-sent-boxes">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="unsent-orders"><span id="db-total-unsent-boxes">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="scheduled-orders"><span id="db-total-scheduled-boxes">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="sent-orders"><div class="value-unit-container"><span id="db-total-sent-boxes">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="unsent-orders"><div class="value-unit-container"><span id="db-total-unsent-boxes">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="scheduled-orders"><div class="value-unit-container"><span id="db-total-scheduled-boxes">0</span><span class="unit">박스</span></div></div>
 
                         <!-- Sweet Persimmon Row -->
                         <div class="grid-row-header">단감</div>
-                        <div class="grid-cell" data-filter="sent-sweet"><span id="db-sent-sweet">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="unsent-sweet"><span id="db-unsent-sweet">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="scheduled-sweet"><span id="db-scheduled-sweet">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="sent-sweet"><div class="value-unit-container"><span id="db-sent-sweet">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="unsent-sweet"><div class="value-unit-container"><span id="db-unsent-sweet">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="scheduled-sweet"><div class="value-unit-container"><span id="db-scheduled-sweet">0</span><span class="unit">박스</span></div></div>
 
                         <!-- Daebong Row -->
                         <div class="grid-row-header">대봉</div>
-                        <div class="grid-cell" data-filter="sent-daebong"><span id="db-sent-daebong">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="unsent-daebong"><span id="db-unsent-daebong">0</span><span class="unit">박스</span></div>
-                        <div class="grid-cell" data-filter="scheduled-daebong"><span id="db-scheduled-daebong">0</span><span class="unit">박스</span></div>
+                        <div class="grid-cell" data-filter="sent-daebong"><div class="value-unit-container"><span id="db-sent-daebong">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="unsent-daebong"><div class="value-unit-container"><span id="db-unsent-daebong">0</span><span class="unit">박스</span></div></div>
+                        <div class="grid-cell" data-filter="scheduled-daebong"><div class="value-unit-container"><span id="db-scheduled-daebong">0</span><span class="unit">박스</span></div></div>
                     </div>
                 </div>
             </div>
@@ -178,40 +178,78 @@
     </div>
 
     <div id="order-form-modal" class="modal" style="display:none;">
-        <div class="modal-content">
+        <div class="modal-content wide">
             <span class="close-btn">&times;</span>
             <h2 id="form-title">새 주문</h2>
             <form id="order-form">
                 <input type="hidden" id="order-id">
-                <div class="form-section">
-                    <h3>보내는 분</h3>
-                    <input type="text" id="sender-name" placeholder="이름" required>
-                    <input type="tel" id="sender-phone" placeholder="전화번호" required>
-                    <input type="text" id="sender-address" placeholder="주소" required>
+                
+                <div class="form-grid">
+                    <div class="form-section">
+                        <h3>보내는 분</h3>
+                        <div class="form-group">
+                            <label for="sender-name">이름</label>
+                            <input type="text" id="sender-name" placeholder="이름" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sender-phone">연락처</label>
+                            <input type="tel" id="sender-phone" placeholder="전화번호" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sender-address">주소</label>
+                            <input type="text" id="sender-address" placeholder="주소" required class="input-full">
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h3>받는 분</h3>
+                        <div class="form-group">
+                            <label for="receiver-name">이름</label>
+                            <input type="text" id="receiver-name" placeholder="이름" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="receiver-phone">연락처</label>
+                            <input type="tel" id="receiver-phone" placeholder="전화번호" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="receiver-address">주소</label>
+                            <input type="text" id="receiver-address" placeholder="주소" required class="input-full">
+                        </div>
+                    </div>
                 </div>
-                <div class="form-section">
-                    <h3>받는 분</h3>
-                    <input type="text" id="receiver-name" placeholder="이름" required>
-                    <input type="tel" id="receiver-phone" placeholder="전화번호" required>
-                    <input type="text" id="receiver-address" placeholder="주소" required>
-                </div>
+
                 <div class="form-section">
                     <h3>주문 내용</h3>
-                    <label for="sweet-persimmon">단감 개수</label>
-                    <input type="number" id="sweet-persimmon" min="0" value="0">
-                    <label for="daebong-persimmon">대봉 개수</label>
-                    <input type="number" id="daebong-persimmon" min="0" value="0">
-                    <label for="order-date">주문일자</label>
-                    <input type="date" id="order-date" required>
-                    <label for="referrer">추천인</label>
-                    <input type="text" id="referrer" placeholder="추천인 이름">
+                    <div class="form-group-inline">
+                        <div class="form-group">
+                            <label for="sweet-persimmon">단감 개수</label>
+                            <input type="number" id="sweet-persimmon" min="0" value="0" class="input-small">
+                        </div>
+                        <div class="form-group">
+                            <label for="daebong-persimmon">대봉 개수</label>
+                            <input type="number" id="daebong-persimmon" min="0" value="0" class="input-small">
+                        </div>
+                        <div class="form-group">
+                            <label for="order-date">주문일자</label>
+                            <input type="date" id="order-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="referrer">추천인</label>
+                            <input type="text" id="referrer" placeholder="추천인 이름">
+                        </div>
+                    </div>
                 </div>
+
                 <div class="form-section">
                     <h3>특이사항 및 상태</h3>
-                    <textarea id="notes" placeholder="배송 관련 메모, 고객 요청사항 등"></textarea>
-                    <div class="form-control-group-box">
-                        <label for="payment-status">입금여부</label>
-                        <input type="checkbox" id="payment-status">
+                    <div class="form-group">
+                        <label for="notes">특이사항</label>
+                        <textarea id="notes" placeholder="배송 관련 메모, 고객 요청사항 등"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-control-group-box">
+                            <label for="payment-status">입금여부</label>
+                            <input type="checkbox" id="payment-status">
+                        </div>
                     </div>
                 </div>
                 <button type="submit" id="form-submit-btn">저장</button>

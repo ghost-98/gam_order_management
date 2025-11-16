@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalOrders = 0;
         let totalSweetPersimmons = 0;
         let totalDaebongPersimmons = 0;
-        let sentOrders = 0, totalSentSweet = 0, totalSentDaebong = 0;
+        let completedOrders = 0, totalSentSweet = 0, totalSentDaebong = 0;
         let unsentOrders = 0, totalUnsentSweet = 0, totalUnsentDaebong = 0;
         let scheduledOrders = 0, totalScheduledSweet = 0, totalScheduledDaebong = 0;
         let delayedOrders = 0, delayedUnsentSweet = 0, delayedUnsentDaebong = 0;
@@ -148,9 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
             totalUnsentSweet += stats.unsentSweet;
             totalUnsentDaebong += stats.unsentDaebong;
 
-            if ((stats.sentSweet + stats.sentDaebong) > 0) {
-                sentOrders++;
+            const totalBoxes = stats.totalSweet + stats.totalDaebong;
+            const sentBoxes = stats.sentSweet + stats.sentDaebong;
+            if (totalBoxes > 0 && totalBoxes === sentBoxes) {
+                completedOrders++;
             }
+
             if (stats.unsentSweet > 0 || stats.unsentDaebong > 0) {
                 unsentOrders++;
             }
@@ -171,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('db-total-daebong').textContent = totalDaebongPersimmons;
         
         // 주문 상태별 현황
-        document.getElementById('db-sent-orders').textContent = sentOrders;
+        document.getElementById('db-completed-orders').textContent = completedOrders;
         document.getElementById('db-unsent-orders').textContent = unsentOrders;
         document.getElementById('db-scheduled-orders').textContent = scheduledOrders;
 
@@ -340,6 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 switch (appState.currentFilter) {
                     case 'total-orders': return true;
+                    case 'completed-orders':
+                        const totalBoxes = stats.totalSweet + stats.totalDaebong;
+                        const sentBoxes = stats.sentSweet + stats.sentDaebong;
+                        return totalBoxes > 0 && totalBoxes === sentBoxes;
                     case 'sent-orders': return (stats.sentSweet + stats.sentDaebong) > 0;
                     case 'unsent-orders': return stats.unsentSweet > 0 || stats.unsentDaebong > 0;
                     case 'scheduled-orders': return stats.scheduledSweet > 0 || stats.scheduledDaebong > 0;
@@ -531,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             paid: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
             unpaid: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
             shipped: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
+            scheduled: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
             unshipped: { sweet: 0, daebong: 0, total: 0, sweetCount: 0, daebongCount: 0 },
         };
 
@@ -551,23 +559,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 results.unpaid.daebongCount += stats.totalDaebong;
             }
 
+            // Shipped
             results.shipped.sweetCount += stats.sentSweet;
             results.shipped.daebongCount += stats.sentDaebong;
             results.shipped.sweet += stats.sentSweet * appState.prices.sweet;
             results.shipped.daebong += stats.sentDaebong * appState.prices.daebong;
 
-            const unshippedSweet = stats.unsentSweet + stats.scheduledSweet;
-            const unshippedDaebong = stats.unsentDaebong + stats.scheduledDaebong;
+            // Scheduled
+            results.scheduled.sweetCount += stats.scheduledSweet;
+            results.scheduled.daebongCount += stats.scheduledDaebong;
+            results.scheduled.sweet += stats.scheduledSweet * appState.prices.sweet;
+            results.scheduled.daebong += stats.scheduledDaebong * appState.prices.daebong;
 
-            results.unshipped.sweetCount += unshippedSweet;
-            results.unshipped.daebongCount += unshippedDaebong;
-            results.unshipped.sweet += unshippedSweet * appState.prices.sweet;
-            results.unshipped.daebong += unshippedDaebong * appState.prices.daebong;
+            // Unshipped
+            results.unshipped.sweetCount += stats.unsentSweet;
+            results.unshipped.daebongCount += stats.unsentDaebong;
+            results.unshipped.sweet += stats.unsentSweet * appState.prices.sweet;
+            results.unshipped.daebong += stats.unsentDaebong * appState.prices.daebong;
         });
 
         results.paid.total = results.paid.sweet + results.paid.daebong;
         results.unpaid.total = results.unpaid.sweet + results.unpaid.daebong;
         results.shipped.total = results.shipped.sweet + results.shipped.daebong;
+        results.scheduled.total = results.scheduled.sweet + results.scheduled.daebong;
         results.unshipped.total = results.unshipped.sweet + results.unshipped.daebong;
 
         return results;
@@ -578,72 +592,130 @@ document.addEventListener('DOMContentLoaded', () => {
         const criteria = document.querySelector('input[name="agg-criteria"]:checked').value;
 
         let html = '';
-        let data, cat1, cat2, cat1Label, cat2Label;
 
         if (criteria === 'payment') {
-            data = results;
-            cat1 = 'paid';
-            cat2 = 'unpaid';
-            cat1Label = '입금 완료';
-            cat2Label = '미입금';
-            html = `<h3>입금여부 기준 집계</h3>`;
-        } else { 
-            data = results;
-            cat1 = 'shipped';
-            cat2 = 'unshipped';
-            cat1Label = '발송 완료';
-            cat2Label = '미발송';
-            html = `<h3>발송여부 기준 집계</h3>`;
+            const data = results;
+            const cat1 = 'paid';
+            const cat2 = 'unpaid';
+            const cat1Label = '입금 완료';
+            const cat2Label = '미입금';
+            
+            const totalSweetCount = data[cat1].sweetCount + data[cat2].sweetCount;
+            const totalDaebongCount = data[cat1].daebongCount + data[cat2].daebongCount;
+            const totalSweetValue = data[cat1].sweet + data[cat2].sweet;
+            const totalDaebongValue = data[cat1].daebong + data[cat2].daebong;
+            const grandTotal = data[cat1].total + data[cat2].total;
+
+            html = `
+                <h3>입금여부 기준 집계</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>항목</th>
+                            <th>단감(금액)</th>
+                            <th>단감(수량)</th>
+                            <th>대봉(금액)</th>
+                            <th>대봉(수량)</th>
+                            <th>합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${cat1Label}</td>
+                            <td>${formatCurrency(data[cat1].sweet)}</td>
+                            <td>${data[cat1].sweetCount}</td>
+                            <td>${formatCurrency(data[cat1].daebong)}</td>
+                            <td>${data[cat1].daebongCount}</td>
+                            <td>${formatCurrency(data[cat1].total)}</td>
+                        </tr>
+                        <tr>
+                            <td>${cat2Label}</td>
+                            <td>${formatCurrency(data[cat2].sweet)}</td>
+                            <td>${data[cat2].sweetCount}</td>
+                            <td>${formatCurrency(data[cat2].daebong)}</td>
+                            <td>${data[cat2].daebongCount}</td>
+                            <td>${formatCurrency(data[cat2].total)}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>총계</th>
+                            <td>${formatCurrency(totalSweetValue)}</td>
+                            <td>${totalSweetCount}</td>
+                            <td>${formatCurrency(totalDaebongValue)}</td>
+                            <td>${totalDaebongCount}</td>
+                            <td>${formatCurrency(grandTotal)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        } else { // shipping criteria
+            const data = results;
+            const cat1 = 'shipped';
+            const cat2 = 'scheduled';
+            const cat3 = 'unshipped';
+            const cat1Label = '발송 완료';
+            const cat2Label = '발송 예정';
+            const cat3Label = '미발송';
+            
+            const totalSweetCount = data[cat1].sweetCount + data[cat2].sweetCount + data[cat3].sweetCount;
+            const totalDaebongCount = data[cat1].daebongCount + data[cat2].daebongCount + data[cat3].daebongCount;
+            const totalSweetValue = data[cat1].sweet + data[cat2].sweet + data[cat3].sweet;
+            const totalDaebongValue = data[cat1].daebong + data[cat2].daebong + data[cat3].daebong;
+            const grandTotal = data[cat1].total + data[cat2].total + data[cat3].total;
+
+            html = `
+                <h3>발송여부 기준 집계</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>항목</th>
+                            <th>단감(금액)</th>
+                            <th>단감(수량)</th>
+                            <th>대봉(금액)</th>
+                            <th>대봉(수량)</th>
+                            <th>합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${cat1Label}</td>
+                            <td>${formatCurrency(data[cat1].sweet)}</td>
+                            <td>${data[cat1].sweetCount}</td>
+                            <td>${formatCurrency(data[cat1].daebong)}</td>
+                            <td>${data[cat1].daebongCount}</td>
+                            <td>${formatCurrency(data[cat1].total)}</td>
+                        </tr>
+                        <tr>
+                            <td>${cat2Label}</td>
+                            <td>${formatCurrency(data[cat2].sweet)}</td>
+                            <td>${data[cat2].sweetCount}</td>
+                            <td>${formatCurrency(data[cat2].daebong)}</td>
+                            <td>${data[cat2].daebongCount}</td>
+                            <td>${formatCurrency(data[cat2].total)}</td>
+                        </tr>
+                        <tr>
+                            <td>${cat3Label}</td>
+                            <td>${formatCurrency(data[cat3].sweet)}</td>
+                            <td>${data[cat3].sweetCount}</td>
+                            <td>${formatCurrency(data[cat3].daebong)}</td>
+                            <td>${data[cat3].daebongCount}</td>
+                            <td>${formatCurrency(data[cat3].total)}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>총계</th>
+                            <td>${formatCurrency(totalSweetValue)}</td>
+                            <td>${totalSweetCount}</td>
+                            <td>${formatCurrency(totalDaebongValue)}</td>
+                            <td>${totalDaebongCount}</td>
+                            <td>${formatCurrency(grandTotal)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
         }
-
-        const totalSweetCount = data[cat1].sweetCount + data[cat2].sweetCount;
-        const totalDaebongCount = data[cat1].daebongCount + data[cat2].daebongCount;
-        const totalSweetValue = data[cat1].sweet + data[cat2].sweet;
-        const totalDaebongValue = data[cat1].daebong + data[cat2].daebong;
-        const grandTotal = data[cat1].total + data[cat2].total;
-
-        html += `
-            <table>
-                <thead>
-                    <tr>
-                        <th>항목</th>
-                        <th>단감(금액)</th>
-                        <th>단감(수량)</th>
-                        <th>대봉(금액)</th>
-                        <th>대봉(수량)</th>
-                        <th>합계</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>${cat1Label}</td>
-                        <td>${formatCurrency(data[cat1].sweet)}</td>
-                        <td>${data[cat1].sweetCount}</td>
-                        <td>${formatCurrency(data[cat1].daebong)}</td>
-                        <td>${data[cat1].daebongCount}</td>
-                        <td>${formatCurrency(data[cat1].total)}</td>
-                    </tr>
-                    <tr>
-                        <td>${cat2Label}</td>
-                        <td>${formatCurrency(data[cat2].sweet)}</td>
-                        <td>${data[cat2].sweetCount}</td>
-                        <td>${formatCurrency(data[cat2].daebong)}</td>
-                        <td>${data[cat2].daebongCount}</td>
-                        <td>${formatCurrency(data[cat2].total)}</td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th>총계</th>
-                        <td>${formatCurrency(totalSweetValue)}</td>
-                        <td>${totalSweetCount}</td>
-                        <td>${formatCurrency(totalDaebongValue)}</td>
-                        <td>${totalDaebongCount}</td>
-                        <td>${formatCurrency(grandTotal)}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        `;
         aggregationResults.innerHTML = html;
     };
 
@@ -765,16 +837,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (id) {
             const index = appState.orders.findIndex(o => o.id == id);
             if(index !== -1) appState.orders[index] = { ...appState.orders[index], ...orderData };
+            refreshUI();
+            closeOrderModal();
+            saveStateToLocalStorage();
         } else {
-            appState.orders.push({ 
-                id: Date.now(), 
-                shippingDetails: { sweetPersimmon: [], daebongPersimmon: [] },
-                ...orderData 
-            });
+            const matchingOrders = appState.orders.filter(o => 
+                o.senderName === orderData.senderName && o.receiverName === orderData.receiverName
+            );
+
+            const createNewOrder = () => {
+                appState.orders.push({ 
+                    id: Date.now(), 
+                    shippingDetails: { sweetPersimmon: [], daebongPersimmon: [] },
+                    ...orderData 
+                });
+                refreshUI();
+                closeOrderModal();
+                saveStateToLocalStorage();
+            };
+
+            if (matchingOrders.length > 0) {
+                let message = `동일한 이름(보내는 분: ${orderData.senderName}, 받는 분: ${orderData.receiverName})으로 등록된 주문이 ${matchingOrders.length}건 있습니다.\n\n`;
+                matchingOrders.forEach(o => {
+                    message += `- 주문일: ${o.orderDate}, 단감: ${o.sweetPersimmon}, 대봉: ${o.daebongPersimmon}\n`;
+                });
+                message += `\n그래도 추가하시겠습니까?`;
+
+                if (confirm(message)) {
+                    createNewOrder();
+                }
+            } else {
+                createNewOrder();
+            }
         }
-        refreshUI();
-        closeOrderModal();
-        saveStateToLocalStorage();
     });
 
     priceSettingsForm.addEventListener('submit', (e) => {
