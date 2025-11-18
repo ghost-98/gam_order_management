@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderForm = document.getElementById('order-form');
     const formTitle = document.getElementById('form-title');
     const searchInput = document.getElementById('search-input');
+    const deliveryDateFilter = document.getElementById('delivery-date-filter');
     const dashboard = document.getElementById('dashboard');
     const resetViewBtn = document.getElementById('reset-view-btn');
     const toggleViewBtn = document.getElementById('toggle-view-btn');
@@ -330,6 +331,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     String(value).toLowerCase().includes(searchTerm)
                 )
             );
+        }
+
+        const deliveryFilterDate = deliveryDateFilter.value;
+        if (deliveryFilterDate) {
+            processedOrders = processedOrders.filter(order => {
+                if (!order.shippingDetails) return false;
+                
+                const hasCompletedOnDate = (items) => 
+                    (items || []).some(item => item.status === '발송완료' && item.date === deliveryFilterDate);
+                
+                return hasCompletedOnDate(order.shippingDetails.sweetPersimmon) || hasCompletedOnDate(order.shippingDetails.daebongPersimmon);
+            });
         }
 
         let filteredByDashboard = processedOrders;
@@ -787,8 +800,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetViewBtn.addEventListener('click', () => {
         searchInput.value = '';
+        deliveryDateFilter.value = '';
         appState.currentFilter = null;
-        document.querySelectorAll('.summary-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('[data-filter]').forEach(item => item.classList.remove('active'));
         refreshUI();
         saveStateToLocalStorage();
     });
@@ -1054,6 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     searchInput.addEventListener('input', () => renderTable(getFilteredAndSortedOrders()));
+    deliveryDateFilter.addEventListener('input', () => renderTable(getFilteredAndSortedOrders()));
 
     document.querySelectorAll('th[data-sort]').forEach(header => {
         header.addEventListener('click', () => {

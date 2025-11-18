@@ -320,6 +320,21 @@ h3 {
     gap: 10px;
 }
 
+.search-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#delivery-date-filter {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: #fff;
+    color: var(--text-light-color);
+}
+
 #search-input {
     padding: 10px 15px;
     border: 1px solid var(--border-color);
